@@ -5,7 +5,10 @@ on:
     branches:
       - main
     tags:
-      - 'v*' # Trigger on version tags like v1.0.0
+      - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -17,15 +20,20 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      # LINUX SPECIFIC: Install graphics tools required for AppImage creation
+      - name: Install Linux Dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libicns-utils graphicsmagick
 
       - name: Install Node.js
-        uses: actions/setup-node@v3
-        
+        uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      # Create the .env file on the  build server using your GitHub Secrets
       - name: Create .env file
         run: |
           echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> .env
@@ -35,24 +43,20 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      
-      # This runs the 'dist' script in your package.json
-      # Linux/Mac handles icons slightly differently, but standard config usually works......
+      # Build the app. 
+      # Note: Mac build will generate an unsigned .dmg which works but requires user override.
       - name: Build Electron App
         run: npm run dist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Uploads the finished installers 
-      # so you can download them from GitHub
+      # Upload artifacts using v4 (Fixes deprecation error)
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: snap-prompt-${{ matrix.os }}
           path: |
             dist/*.exe
             dist/*.dmg
             dist/*.AppImage
-            dist/*.snap
-            dist/*.deb
           retention-days: 5
