@@ -46,37 +46,39 @@ Instead of relying on third-party servers, Snap Prompts uses your own Google Dri
 
 🛠️ **Development**
 
+* Git: **https://github.com/NovaFemme/Snap-Prompt/tree/main**
+* 
 * If you want to build the app from source or contribute, follow these steps:
 **Prerequisites**
-
 * Node.js (v16 or higher)
 * npm or yarn
 * A Google Cloud Project with Drive API enabled (for .env configuration)
+
 **Setup:**
-Clone the repository
-git clone https://github.com/NovaFemme/Snap-Prompt.git
-cd snap-prompts
+* Clone the repository
+* **git clone https://github.com/NovaFemme/Snap-Prompt.git**
+* cd snap-prompts
 
 **Install dependencies**
-npm install
+* npm install
 
 
 **Configure Environment Variables**
-Create a .env file in the root directory and add your Google API credentials:
-GOOGLE_CLIENT_ID=your_client_id
-GOOGLE_CLIENT_SECRET=your_client_secret
+* Create a .env file in the root directory and add your Google API credentials:
+* GOOGLE_CLIENT_ID=your_client_id
+* GOOGLE_CLIENT_SECRET=your_client_secret
 
 
 **Run Locally**
-Start the React development server and Electron wrapper simultaneously:
-npm run electron:dev
+* Start the React development server and Electron wrapper simultaneously:
+* npm run electron:dev
 
 
 **Building the Installer**
-To package the application for distribution:
+**To package the application for distribution:**
 
 # This will build the installer for your current OS
-npm run dist
+* npm run dist
 
 
 * The output files will be located in the dist folder.
