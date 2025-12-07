@@ -1,0 +1,57 @@
+name: Build/Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*' # Trigger on version tags like v1.0.0
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v3
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        
+        with:
+          node-version: 18
+
+      # Create the .env file on the  build server using your GitHub Secrets
+      - name: Create .env file
+        run: |
+          echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> .env
+          echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> .env
+        shell: bash
+
+      - name: Install Dependencies
+        run: npm install
+
+      # This runs the 'dist' script in your package.json
+      # Linux/Mac handles icons slightly differently, but standard config usually works......
+      - name: Build Electron App
+        run: npm run dist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Uploads the finished installers 
+      # so you can download them from GitHub
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: snap-prompt-${{ matrix.os }}
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.AppImage
+            dist/*.snap
+            dist/*.deb
+          retention-days: 5
