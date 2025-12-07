@@ -35,6 +35,7 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
+        
       # This runs the 'dist' script in your package.json
       # Linux/Mac handles icons slightly differently, but standard config usually works......
       - name: Build Electron App
