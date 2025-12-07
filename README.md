@@ -19,9 +19,25 @@ Instead of relying on third-party servers, Snap Prompts uses your own Google Dri
 * ⚡ **Hot-Reloading:** Instant updates to your library.
 * 📥 Installation
 
-**Download**
-
 ### Grab the latest installer for your operating system from the Releases Page.
+* https://github.com/NovaFemme/Snap-Prompt/releases/tag/snap-prompt
+  
+<img width="976" height="843" alt="1" src="https://github.com/user-attachments/assets/a0a4ab4d-dc94-40b8-8355-9ab0ca551d07" />
+
+<img width="810" height="916" alt="2" src="https://github.com/user-attachments/assets/4f9962e5-5237-4ceb-bc4a-97ad844fc410" />
+
+<img width="1611" height="977" alt="3" src="https://github.com/user-attachments/assets/593847a0-b785-466d-8206-f35bd6f0bf57" />
+
+<img width="976" height="810" alt="5" src="https://github.com/user-attachments/assets/0f94a6bb-5592-4fdc-b027-5be54e5e19f6" />
+
+<img width="969" height="828" alt="6" src="https://github.com/user-attachments/assets/28421d1b-365b-4397-b117-15f9f4933cc8" />
+
+<img width="1165" height="898" alt="7" src="https://github.com/user-attachments/assets/2b5ed57d-201e-4644-a8bb-ba9cabe6c70b" />
+
+<img width="708" height="894" alt="8" src="https://github.com/user-attachments/assets/c2b3d077-147e-42be-8f7b-8c17a7e22405" />
+
+<img width="726" height="671" alt="9" src="https://github.com/user-attachments/assets/4882b453-bb52-419c-b297-9883287b7f79" />
+
 ### Supported Platforms
 
 **Windows:** Windows 10/11 (.exe)
@@ -78,7 +94,7 @@ npm run dist
 ## Distributed under the MIT License. See LICENSE for more information.
 **Built with ❤️ for the AI Art Community**
 
-# Privacy Policy for Snap Prompt
+# **Privacy Policy for Snap Prompt**
 
 1. Data Storage Snap Prompt does not store your personal data, prompts, or images on its own servers. All data is stored locally on your device **(snap-prompts.json)** and synchronized directly to your personal Google Drive in the **"Snap Prompt"** folder.
 
