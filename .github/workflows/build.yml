@@ -63,9 +63,10 @@ jobs:
       # Note: Mac build will generate an unsigned .dmg which works but requires user override.
       # FIXED: Added 'CI=false' to ignore ESLint deprecation warnings
       - name: Build Electron App
-        run: CI=false npm run dist
+        run: npm run dist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CI: false   # <--- Add this here!
 
       # Upload artifacts using v4 (Fixes deprecation error)
       - name: Upload Artifacts
