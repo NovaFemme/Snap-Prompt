@@ -1,7 +1,7 @@
 {
   "name": "snap-prompt",
   "productName": "Snap Prompt",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Sync your Stable Diffusion prompts across devices via Google Drive.",
   "author": {
     "name": "NovaFemme",
@@ -48,6 +48,7 @@
     "files": [
       "build/**/*",
       "electron/**/*",
+      "src/items/**/*",
       "package.json",
       ".env"
     ],

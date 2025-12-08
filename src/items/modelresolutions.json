@@ -1,0 +1,19 @@
+[
+  "512x512 - 1:1 Square (SD 1.5)",
+  "512x768 - 2:3 Portrait",
+  "768x512 - 3:2 Landscape",
+  "768x768 - 1:1 Square (SD 2.1)",
+  "768x1024 - 3:4 Portrait",
+  "1024x768 - 4:3 Landscape",
+  "1024x1024 - 1:1 Square (SDXL/Flux)",
+  "1152x896 - 4:3 Landscape",
+  "896x1152 - 3:4 Portrait",
+  "1216x832 - 3:2 Landscape",
+  "832x1216 - 2:3 Portrait",
+  "1344x768 - 16:9 Cinematic (SDXL)",
+  "768x1344 - 9:16 Social Media",
+  "1536x640 - 21:9 Ultrawide",
+  "640x1536 - 9:21 Tall",
+  "1920x1080 - 16:9 Full HD",
+  "1080x1920 - 9:16 Full HD Portrait"
+]

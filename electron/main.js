@@ -32,6 +32,34 @@ let userProfile = null;
 let driveFolderId = null;
 let mainWindow;
 
+
+// Remove 'async' keyword since we use readFileSync (synchronous)
+function loadJSON(filename) {
+  try {
+    const filePath = path.join(__dirname, '..', 'src', 'items', filename);
+    
+    // Read and parse
+    const rawData = fs.readFileSync(filePath, 'utf-8');
+    const parsedData = JSON.parse(rawData);
+    
+    // Safety check
+    if (!Array.isArray(parsedData)) return [];
+
+    // SMART MAPPING: Works for both Strings and Objects
+    return parsedData.map(item => {
+      // 1. If it is already a string (e.g. "SDXL 1.0"), just return it
+      if (typeof item === 'string') return item;
+      
+      // 2. If it is an object, try to find 'label' or 'name'
+      return item.label || item.name || "Unknown"; 
+    }).filter(Boolean);
+
+  } catch (err) {
+    // console.error(`Error loading ${filename}:`, err.message);
+    return []; // Return empty array on failure
+  }
+}
+
 // --- UTILS ---
 function safeJSONParse(data, fallback = null) {
   try { return JSON.parse(data); } catch { return fallback; }
@@ -326,10 +354,42 @@ ipcMain.handle('delete-prompt', async (e, id) => {
   saveData(p);
   return { success: true };
 });
-ipcMain.handle('get-configs', async () => ({
-  models: ["SDXL_1.0.safetensors", "Realistic_Vision_V5.safetensors", "RevAnimated.safetensors"],
-  samplers: ["Euler a", "DPM++ 2M Karras", "DPM++ SDE Karras"]
-}));
+
+ipcMain.handle('get-configs', async () => {
+  // No 'await' needed here because loadJSON uses fs.readFileSync
+  const basemodels = loadJSON('basemodels.json');
+  const samplers = loadJSON('samplers.json');
+  const categories = loadJSON('categories.json');
+  const checkpointtypes = loadJSON('checkpointtypes.json');
+  const modelfileformats = loadJSON('modelfileformats.json');
+  const modeltypes = loadJSON('modeltypes.json');
+  const schedulers = loadJSON('schedulers.json');
+  const modelresolutions = loadJSON('modelresolutions.json');
+
+  const valo = {
+    basemodels,
+    samplers,
+    categories,
+    checkpointtypes,
+    modelfileformats,
+    modeltypes,
+    schedulers,
+    modelresolutions
+  };
+  
+  // Return the data object directly
+  return {
+    basemodels,
+    samplers,
+    categories,
+    checkpointtypes,
+    modelfileformats,
+    modeltypes,
+    schedulers,
+    modelresolutions
+  };
+});
+
 
 ipcMain.handle('save-prompt', async (event, promptData) => {
   try {

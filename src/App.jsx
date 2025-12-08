@@ -2,21 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { 
   Save, Plus, AlertCircle, Check, Loader2, X, 
   History, Trash2, Calendar, ArrowLeft, Edit2, Minimize2, Maximize2,
-  Sliders, FileText, Ban, Image as ImageIcon, Upload, Lock, MessageSquare, LogOut
+  Sliders, FileText, Ban, Image as ImageIcon, Upload, Lock, MessageSquare, LogOut, 
+  Heart, Copy, Clipboard // <--- ADDED Copy and Clipboard here
 } from 'lucide-react';
 
 // --- IMAGE HANDLING INSTRUCTIONS ---
 import appIcon from './icon.png' 
 // ---------------------------------------------------------------------------
 // FOR PREVIEW (Current Mode):
-// We use a web link so the app doesn't crash here in the browser.
 //const appIcon = "https://drive.google.com/uc?export=view&id=1BdkKCJld4j4TeU1mUf_RhQShZPiRA_ps";
-
-// FOR LOCAL BUILD (When you run 'npm run dist' on your PC):
-// 1. Make sure 'icon.png' is in your 'src' folder.
-// 2. UNCOMMENT the line below (remove the //):
-// import appIcon from './icon.png'; 
-// 3. COMMENT OUT the 'const appIcon = ...' line above.
 // ---------------------------------------------------------------------------
 
 // --- MOCK ELECTRON BRIDGE (For Browser Preview) ---
@@ -25,7 +19,7 @@ if (!window.electron) {
   console.warn("Electron API not found. Using Mock Bridge for browser preview.");
   
   window.electron = {
-    checkAuth: async () => null, // Simulate logged out initially
+    checkAuth: async () => null, 
     loginGoogle: async () => {
       console.log("Mock Login Triggered");
       return { name: "Preview User", email: "user@example.com", picture: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" };
@@ -64,10 +58,17 @@ if (!window.electron) {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(items));
       return { success: true };
     },
-    getConfigs: async () => ({
-      models: ["SDXL_1.0.safetensors", "Realistic_Vision_V5.safetensors", "RevAnimated.safetensors"],
-      samplers: ["Euler a", "DPM++ 2M Karras", "DPM++ SDE Karras"]
-    }),
+    getConfigs: async () => {
+      return { 
+          basemodels: ["SDXL_1.0", "SD 1.5"], 
+          samplers: ["DPM++ 2M Karras", "Euler a"], 
+          categories: ["Character", "Landscape"], 
+          modeltypes: ["Checkpoint", "LoRA"], 
+          checkpointtypes: ["Merged", "Trained"], 
+          modelfileformats: ["Safe Tensor", "ckpt"], 
+          modelresolutions: ["1024x1024", "512x512"] 
+      };
+    },
     resizeWindow: (min) => console.log(`Window resize requested. Mini mode: ${min}`),
     setResizable: (allow) => console.log(`Window resizable set to: ${allow}`),
     quitApp: () => console.log("App quit requested")
@@ -86,8 +87,6 @@ const LoginScreen = ({ onLogin }) => (
     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-8">
       <div className="relative group">
         <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
-        
-        {/* APP ICON */}
         <div className="relative w-24 h-24 bg-[#1e1e1e] rounded-xl flex items-center justify-center shadow-2xl border border-[#333] overflow-hidden">
           <img src={appIcon} alt="Snap Prompt Icon" className="w-full h-full object-cover" />
         </div>
@@ -143,6 +142,7 @@ const Modal = ({ isOpen, title, message, onConfirm, onCancel, confirmText = "Con
 };
 
 const App = () => {
+  // --- STATE DEFINITIONS ---
   const [activeTab, setActiveTab] = useState('history'); 
   const [editorView, setEditorView] = useState('prompt');
   
@@ -151,12 +151,15 @@ const App = () => {
   const [isFloating, setIsFloating] = useState(false); // Tracks Floating Bubble Mode
 
   const [history, setHistory] = useState([]);
-  const [configs, setConfigs] = useState({ models: [], samplers: [] });
+  const [configs, setConfigs] = useState({ basemodels: [], samplers: [], categories: [], checkpointtypes: [], modelfileformats: [], modeltypes: [], schedulers: [] , modelresolutions: []});
   const [isSaving, setIsSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   const [previewImage, setPreviewImage] = useState(null);
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', onConfirm: () => {}, isDestructive: false, confirmText: 'Confirm' });
+
+  // Grouping State
+  const [groupBy, setGroupBy] = useState('none'); 
 
   const [formData, setFormData] = useState({
     id: null,
@@ -167,31 +170,71 @@ const App = () => {
     negative: "", 
     stylePrompt: "",
     refinerPrompt: "",
-    width: 1024,
-    height: 1024,
+    width: 0,
+    height: 0,
+    modelresolution: "",
     steps: 30,
     cfgScale: 7.0, 
     seed: -1,
     sampler: "DPM++ 2M Karras",
-    model: "SDXL_1.0.safetensors",
+    scheduler: "Simple",
+    basemodel: "SDXL_1.0.safetensors",
+    checkpointtype: "Merged",
+    modelfileformat: "Safe Tensor",
+    modeltype:"Checkpoint",
     vae: "Automatic",
     clipSkip: 2,
     denoise: 0.7,
     addNoise: true,
     startStep: 0,
     endStep: 100,
-    action: "Text to Image",
+    processType: "Text to Image",
     usedPromptType: "SDXL",
     category: "Character Design",
     subCategory: "",
     comment: "",
-    link: "",
-    date: new Date().toISOString().split('T')[0]
+    modelUrl: "",
+    promptDate: new Date().toISOString().split('T')[0]
   });
 
+  // --- HELPER: Group Prompts ---
+  const getGroupedPrompts = () => {
+    if (groupBy === 'none') return { "All Prompts": history };
+
+    return history.reduce((groups, prompt) => {
+      let key = prompt[groupBy];
+      if (groupBy === 'promptDate') {
+        key = key ? new Date(key).toLocaleDateString() : 'No Date'; 
+      } else if (groupBy === 'favourite') {
+        key = key ? '❤️ Favourites' : 'Standard';
+      } else if (!key) {
+        key = 'Uncategorized';
+      }
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(prompt);
+      return groups;
+    }, {});
+  };
+
+  const groupedPrompts = getGroupedPrompts();
+
+  // --- HELPER: Clipboard ---
+  const handleCopy = (text) => {
+    if (text) navigator.clipboard.writeText(text);
+  };
+
+  const handlePaste = async (field) => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) setFormData(prev => ({ ...prev, [field]: text }));
+    } catch (err) {
+      console.error("Paste failed", err);
+    }
+  };
+
+  // --- EFFECTS ---
   useEffect(() => {
     if (window.electron) {
-        // Lock window resize to prevent accidental resizing
         if (window.electron.setResizable) {
             window.electron.setResizable(false);
         }
@@ -244,9 +287,7 @@ const App = () => {
 
   const handleLogout = async () => {
     if (window.electron) {
-      // 1. Call backend to clear tokens
       await window.electron.logout();
-      // 2. Clear local state
       setUser(null);
       setHistory([]);
     }
@@ -315,7 +356,7 @@ const App = () => {
   };
 
   const handleAddNew = () => {
-    setFormData({ id: null, title: "", favourite: false, image: "", positive: "", negative: "", stylePrompt: "", refinerPrompt: "", width: 1024, height: 1024, steps: 30, cfgScale: 7.0, seed: -1, sampler: "DPM++ 2M Karras", model: "SDXL_1.0.safetensors", vae: "Automatic", clipSkip: 2, denoise: 0.7, addNoise: true, startStep: 0, endStep: 100, action: "Text to Image", usedPromptType: "SDXL", category: "Character Design", subCategory: "", comment: "", link: "", date: new Date().toISOString().split('T')[0] });
+    setFormData({ id: null, title: "", favourite: false, image: "", positive: "", negative: "", stylePrompt: "", refinerPrompt: "", width: 1024, height: 1024, steps: 30, cfgScale: 7.0, seed: -1, sampler: "DPM++ 2M Karras", scheduler: "Simple", basemodel: "SDXL_1.0.safetensors", checkpointtype: "Merged", modelfileformat: "Safe Tensor", modeltype:"Checkpoint", vae: "Automatic", clipSkip: 2, denoise: 0.7, addNoise: true, startStep: 0, endStep: 100, processType: "Text to Image", usedPromptType: "SDXL", category: "Character Design", subCategory: "", comment: "", modelUrl: "", promptDate: new Date().toISOString().split('T')[0] });
     setErrorMsg(''); setIsSaving(false); setEditorView('prompt'); setActiveTab('editor');
   };
 
@@ -350,15 +391,11 @@ const App = () => {
   // 3. FLOATING MODE UI
   if (isFloating) {
     return (
-      // Changed to a full-screen container that centers the bubble.
-      // The bubble itself is now constrained to w-24 h-24 (96px).
-      // This works in both the small window (100x100) and the large preview window.
       <div className="w-full h-full flex items-center justify-center bg-transparent">
         <div 
           className="w-24 h-24 rounded-full overflow-hidden border-2 border-white/20 shadow-2xl drag-handle cursor-move bg-[#121212] relative group flex items-center justify-center"
         >
           <img src={user.picture} alt="Floating User" className="w-full h-full object-cover pointer-events-none" />
-          {/* ADDED no-drag AND onClick here to ensure interactions work even if drag region swallows double-clicks */}
           <div 
               className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity no-drag cursor-pointer"
               onClick={toggleFloating}
@@ -388,7 +425,6 @@ const App = () => {
       {/* HEADER */}
       <div className="drag-handle h-14 bg-[#1a1a1a] flex items-center justify-between px-4 border-b border-[#333]">
         <div className="flex items-center gap-3">
-          {/* USER AVATAR - CLICK TO FLOAT */}
           <div className="relative group no-drag cursor-pointer" onClick={toggleFloating} title="Click to Switch to Floating Mode">
              <div className="absolute -inset-1 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full blur opacity-0 group-hover:opacity-60 transition duration-300"></div>
              <img src={user.picture} alt="User" className="relative w-10 h-10 rounded-full border-2 border-[#333] group-hover:border-white transition-all transform group-hover:scale-105 object-cover" />
@@ -405,7 +441,21 @@ const App = () => {
         </div>
 
         <div className="flex gap-2 no-drag">
-          {/* LOGOUT BUTTON ADDED HERE */}
+          {/* Heart Button */}
+          {activeTab === 'editor' && (
+            <button 
+              onClick={() => setFormData(prev => ({...prev, favourite: !prev.favourite}))}
+              className={`p-2 rounded-lg transition flex items-center justify-center ${
+                formData.favourite 
+                  ? 'text-red-500 hover:bg-red-900/20' 
+                  : 'text-gray-400 hover:bg-[#333] hover:text-gray-200'
+              }`}
+              title="Toggle Favourite"
+            >
+              <Heart size={18} fill={formData.favourite ? "currentColor" : "none"} />
+            </button>
+          )}
+
           <button onClick={handleLogout} className="p-2 hover:bg-[#333] rounded-lg text-gray-400 transition" title="Sign Out">
             <LogOut size={18} />
           </button>
@@ -416,36 +466,80 @@ const App = () => {
 
       <div className="flex-1 overflow-hidden relative flex flex-col">
         {activeTab === 'history' && (
-          <>
-            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-3">
-              {history.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-2 opacity-50"><MessageSquare size={40} /><p>No prompts saved yet.</p></div>
-              ) : (
-                history.map(item => (
-                  <div key={item.id} onClick={() => handleEdit(item)} className="group bg-[#1e1e1e] hover:bg-[#252525] border border-[#333] hover:border-[#555] rounded-lg p-3 cursor-pointer transition-all shadow-sm relative flex gap-3">
-                    {item.image && (
-                        <div className="flex-shrink-0" onClick={(e) => { e.stopPropagation(); setPreviewImage(item.image); }}>
-                             <img src={item.image} alt="Ref" className="w-20 h-20 object-cover rounded bg-[#121212] border border-[#333] hover:opacity-80 hover:scale-105 transition duration-200 cursor-zoom-in" />
+          <div className="h-full flex flex-col">
+            <div className="flex items-center justify-between p-2 mb-2 bg-[#252525] border-b border-[#333]">
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-bold text-gray-500 uppercase mr-2">Group By:</span>
+                <select 
+                  value={groupBy} 
+                  onChange={(e) => setGroupBy(e.target.value)}
+                  className="bg-[#1a1a1a] border border-[#333] text-gray-300 text-xs rounded px-2 py-1 outline-none focus:border-blue-500"
+                >
+                  <option value="none">None (List View)</option>
+                  <option value="promptDate">Prompt Date</option>
+                  <option value="category">Category</option>
+                  <option value="favourite">Favourite</option>
+                  <option value="modelresolution">Model Resolution</option>
+                  <option value="modeltype">Model Type</option>
+                  <option value="basemodel">Base Model</option>
+                  <option value="processType">Process Type</option>
+                </select>
+              </div>
+
+               <button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-500 text-white p-1.5 rounded-lg shadow-lg transition-all hover:scale-105 flex items-center gap-1 pr-2">
+                  <Plus size={16} /> <span className="text-xs font-bold">NEW</span>
+               </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-2 custom-scrollbar space-y-2">
+              {Object.entries(groupedPrompts).map(([groupName, groupItems]) => (
+                <details 
+                  key={groupName} 
+                  open={true} 
+                  className="group bg-[#1a1a1a] border border-[#333] rounded overflow-hidden"
+                >
+                  <summary className="cursor-pointer bg-[#222] p-2 text-xs font-bold text-gray-400 uppercase tracking-wider select-none hover:bg-[#2a2a2a] flex justify-between items-center outline-none">
+                    <span className="flex items-center">
+                      <span className="mr-2 transform transition-transform group-open:rotate-90 text-[10px]">▶</span>
+                      {groupName}
+                    </span>
+                    <span className="bg-[#333] text-gray-500 px-2 py-0.5 rounded-full text-[10px]">
+                      {groupItems.length}
+                    </span>
+                  </summary>
+
+                  <div className="p-2 space-y-2">
+                    {groupItems.map((item) => (
+                      <div key={item.id} onClick={() => handleEdit(item)} className="group/card bg-[#1e1e1e] hover:bg-[#252525] border border-[#333] hover:border-[#555] rounded-lg p-3 cursor-pointer transition-all shadow-sm relative flex gap-3">
+                        {item.image && (
+                            <div className="flex-shrink-0" onClick={(e) => { e.stopPropagation(); setPreviewImage(item.image); }}>
+                                <img src={item.image} alt="Ref" className="w-20 h-20 object-cover rounded bg-[#121212] border border-[#333] hover:opacity-80 hover:scale-105 transition duration-200 cursor-zoom-in" />
+                            </div>
+                        )}
+                        <div className="flex-1 min-w-0 flex flex-col">
+                            <div className="flex justify-between items-start mb-1">
+                                <h3 className="font-bold text-gray-200 truncate pr-8">{item.title}</h3>
+                                <button onClick={(e) => handleDelete(e, item.id)} className="absolute top-3 right-3 p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded transition"><Trash2 size={14} /></button>
+                            </div>
+                            <p className="text-xs text-gray-500 mb-2 flex items-center gap-1"><Calendar size={10}/> {item.promptDate || new Date(parseInt(item.id)).toLocaleDateString()}</p>
+                            <div className="text-sm text-gray-400 line-clamp-2 font-mono text-xs bg-[#121212] p-2 rounded border border-[#222] h-full">
+                                {item.positive || <span className="text-gray-600 italic">No prompt text</span>}
+                            </div>
                         </div>
-                    )}
-                    <div className="flex-1 min-w-0 flex flex-col">
-                        <div className="flex justify-between items-start mb-1">
-                            <h3 className="font-bold text-gray-200 truncate pr-8">{item.title}</h3>
-                            <button onClick={(e) => handleDelete(e, item.id)} className="absolute top-3 right-3 p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded transition"><Trash2 size={14} /></button>
-                        </div>
-                        <p className="text-xs text-gray-500 mb-2 flex items-center gap-1"><Calendar size={10}/> {new Date(parseInt(item.id)).toLocaleDateString()}</p>
-                        <div className="text-sm text-gray-400 line-clamp-2 font-mono text-xs bg-[#121212] p-2 rounded border border-[#222] h-full">
-                            {item.positive || <span className="text-gray-600 italic">No prompt text</span>}
-                        </div>
-                    </div>
+                      </div>
+                    ))}
                   </div>
-                ))
+                </details>
+              ))}
+              
+              {Object.keys(groupedPrompts).length === 0 && (
+                <div className="text-center text-gray-500 mt-10 text-sm flex flex-col items-center gap-2 opacity-50">
+                  <MessageSquare size={40} />
+                  <p>No prompts found.</p>
+                </div>
               )}
             </div>
-            <div className="p-4 bg-[#1a1a1a] border-t border-[#333]">
-              <button onClick={handleAddNew} className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold shadow-lg shadow-blue-900/20 transition-all flex items-center justify-center gap-2"><Plus size={20} /> Create New Prompt</button>
-            </div>
-          </>
+          </div>
         )}
 
         {activeTab === 'editor' && (
@@ -486,11 +580,24 @@ const App = () => {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 text-green-500">Positive Prompt</label>
+                    <div className="flex justify-between items-center mb-1">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 text-green-500">Positive Prompt</label>
+                        <div className="flex gap-2">
+                            <button onClick={() => handleCopy(formData.positive)} className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition" title="Copy"><Copy size={12}/></button>
+                            <button onClick={() => handlePaste('positive')} className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition" title="Paste"><Clipboard size={12}/></button>
+                        </div>
+                    </div>
                     <textarea value={formData.positive} onChange={e => setFormData({...formData, positive: e.target.value})} disabled={isSaving} className="w-full h-32 bg-[#1a1a1a] border border-[#333] focus:border-green-500/50 rounded p-2 text-sm text-gray-200 outline-none resize-none font-mono disabled:opacity-50" placeholder="What do you want to see?"/>
                   </div>
+                  
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 text-red-400">Negative Prompt</label>
+                    <div className="flex justify-between items-center mb-1">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 text-red-400">Negative Prompt</label>
+                        <div className="flex gap-2">
+                            <button onClick={() => handleCopy(formData.negative)} className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition" title="Copy"><Copy size={12}/></button>
+                            <button onClick={() => handlePaste('negative')} className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition" title="Paste"><Clipboard size={12}/></button>
+                        </div>
+                    </div>
                     <textarea value={formData.negative} onChange={e => setFormData({...formData, negative: e.target.value})} disabled={isSaving} className="w-full h-24 bg-[#1a1a1a] border border-[#333] focus:border-red-500/50 rounded p-2 text-sm text-gray-200 outline-none resize-none font-mono disabled:opacity-50" placeholder="What to avoid?"/>
                   </div>
                 </>
@@ -498,21 +605,144 @@ const App = () => {
 
               {editorView === 'settings' && (
                 <div className="space-y-4">
-                   <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Checkpoint Model</label><select value={formData.model} onChange={e => setFormData({...formData, model: e.target.value})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none">{configs.models.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
-                   <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Sampling Method</label><select value={formData.sampler} onChange={e => setFormData({...formData, sampler: e.target.value})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none">{configs.samplers.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
-                   <div className="grid grid-cols-2 gap-4 pt-2">
-                        <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Steps: {formData.steps}</label><input type="range" min="1" max="100" value={formData.steps} onChange={e => setFormData({...formData, steps: parseInt(e.target.value)})} className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-blue-500" /></div>
-                        <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">CFG Scale: {formData.cfgScale}</label><input type="range" min="1" max="30" step="0.5" value={formData.cfgScale} onChange={e => setFormData({...formData, cfgScale: parseFloat(e.target.value)})} className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-blue-500" /></div>
-                   </div>
-                   <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Width</label><input type="number" value={formData.width} onChange={e => setFormData({...formData, width: parseInt(e.target.value)})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none" /></div>
-                        <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Height</label><input type="number" value={formData.height} onChange={e => setFormData({...formData, height: parseInt(e.target.value)})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none" /></div>
-                   </div>
+                    <div className="grid grid-cols-2 gap-4 pt-2">
+                         <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Steps: {formData.steps}</label><input type="range" min="1" max="100" value={formData.steps} onChange={e => setFormData({...formData, steps: parseInt(e.target.value)})} className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-blue-500" /></div>
+                         <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">CFG Scale: {formData.cfgScale}</label><input type="range" min="1" max="30" step="0.5" value={formData.cfgScale} onChange={e => setFormData({...formData, cfgScale: parseFloat(e.target.value)})} className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-blue-500" /></div>
+                    </div>
+                    <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Base Model</label><select value={formData.basemodel} onChange={e => setFormData({...formData, basemodel: e.target.value})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none">{configs.basemodels?.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
+                    <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Model Type</label><select value={formData.modeltype} onChange={e => setFormData({...formData, modeltype: e.target.value})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none">{configs.modeltypes?.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
+                    <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Checkpoint Type</label><select value={formData.checkpointtype} onChange={e => setFormData({...formData, checkpointtype: e.target.value})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none">{configs.checkpointtypes?.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
+                    <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">File Format</label><select value={formData.modelfileformat} onChange={e => setFormData({...formData, modelfileformat: e.target.value})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none">{configs.modelfileformats?.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
+                    <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Categories</label><select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none">{configs.categories?.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
+                    <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Sampling Method</label><select value={formData.sampler} onChange={e => setFormData({...formData, sampler: e.target.value})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none">{configs.samplers?.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+                    <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Resolution</label><select value={formData.modelresolution} onChange={e => setFormData({...formData, modelresolution: e.target.value})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none">{configs.modelresolutions?.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+                    <div className="grid grid-cols-2 gap-4">
+                         <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Width</label><input type="number" value={formData.width} onChange={e => setFormData({...formData, width: parseInt(e.target.value)})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none" /></div>
+                         <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Height</label><input type="number" value={formData.height} onChange={e => setFormData({...formData, height: parseInt(e.target.value)})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none" /></div>
+                    </div>
                 </div>
               )}
 
               {editorView === 'notes' && (
-                <div className="space-y-1 h-full"><label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Personal Notes</label><textarea value={formData.comment} onChange={e => setFormData({...formData, comment: e.target.value})} className="w-full h-64 bg-[#1a1a1a] border border-[#333] focus:border-blue-500/50 rounded p-2 text-sm text-gray-400 outline-none resize-none" placeholder="Add your thoughts, tags, or context here..."/></div>
+                <div className="h-full flex flex-col space-y-4 overflow-y-auto pr-1 custom-scrollbar">
+                  
+                  {/* Existing Notes Field */}
+                  <div className="space-y-1 flex-shrink-0">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Personal Notes</label>
+                    <textarea 
+                      value={formData.comment} 
+                      onChange={e => setFormData({...formData, comment: e.target.value})} 
+                      className="w-full h-32 bg-[#1a1a1a] border border-[#333] focus:border-blue-500/50 rounded p-2 text-sm text-gray-400 outline-none resize-none" 
+                      placeholder="Add your thoughts, tags, or context here..."
+                    />
+                  </div>
+
+                  {/* New Fields Container */}
+                  <div className="grid grid-cols-2 gap-3 pb-4">
+
+                    <div className="col-span-2 space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Process Type</label>
+                      <select 
+                        value={formData.processType || ''} 
+                        onChange={e => setFormData({...formData, processType: e.target.value})} 
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
+                      >
+                        <option value="">Select Type</option>
+                        <option value="txt2img">Text to Image</option>
+                        <option value="img2img">Image to Image</option>
+                        <option value="txt2vid">Text to Video</option>
+                        <option value="img2vid">Image to Video</option>
+                        <option value="inpainting">Inpainting</option>
+                      </select>
+                    </div>
+
+                    <div className="col-span-2 space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Model URL</label>
+                      <input 
+                        type="text" 
+                        value={formData.modelUrl || ''} 
+                        onChange={e => setFormData({...formData, modelUrl: e.target.value})} 
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
+                        placeholder="https://..."
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Prompt Date</label>
+                      <input 
+                        type="date" 
+                        value={formData.promptDate || new Date().toISOString().split('T')[0]} 
+                        onChange={e => setFormData({...formData, promptDate: e.target.value})} 
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none [color-scheme:dark]"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">VAE</label>
+                      <input 
+                        type="text" 
+                        value={formData.vae || ''} 
+                        onChange={e => setFormData({...formData, vae: e.target.value})} 
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Clip Skip</label>
+                      <input 
+                        type="number" 
+                        step="1"
+                        value={formData.clipSkip || ''} 
+                        onChange={e => setFormData({...formData, clipSkip: parseInt(e.target.value) || 0})} 
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Denoise</label>
+                      <input 
+                        type="number" 
+                        step="0.01"
+                        value={formData.denoise || ''} 
+                        onChange={e => setFormData({...formData, denoise: parseFloat(e.target.value) || 0.0})} 
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Start Step</label>
+                      <input 
+                        type="number" 
+                        step="1"
+                        value={formData.startStep || ''} 
+                        onChange={e => setFormData({...formData, startStep: parseInt(e.target.value) || 0})} 
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">End Step</label>
+                      <input 
+                        type="number" 
+                        step="1"
+                        value={formData.endStep || ''} 
+                        onChange={e => setFormData({...formData, endStep: parseInt(e.target.value) || 0})} 
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
+                      />
+                    </div>
+
+                    <div className="col-span-2 flex items-center space-x-3 p-1 mt-1">
+                      <input 
+                        type="checkbox" 
+                        checked={formData.addNoise || false} 
+                        onChange={e => setFormData({...formData, addNoise: e.target.checked})} 
+                        className="w-4 h-4 rounded bg-[#1a1a1a] border border-[#333] text-blue-500 focus:ring-0"
+                      />
+                      <label className="text-sm text-gray-300 select-none">Add Noise</label>
+                    </div>
+
+                  </div>
+                </div>
               )}
             </div>
 
