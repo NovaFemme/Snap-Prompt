@@ -20,23 +20,17 @@ Instead of relying on third-party servers, Snap Prompts uses your own Google Dri
 * 📥 Installation
 
 ### Grab the latest installer for your operating system from the Releases Page.
-* https://github.com/NovaFemme/Snap-Prompt/releases/tag/snap-prompt
-  
-<img width="976" height="843" alt="1" src="https://github.com/user-attachments/assets/a0a4ab4d-dc94-40b8-8355-9ab0ca551d07" />
+* [https://github.com/NovaFemme/Snap-Prompt/releases/tag/snap-prompt](https://github.com/NovaFemme/Snap-Prompt/releases)
 
-<img width="810" height="916" alt="2" src="https://github.com/user-attachments/assets/4f9962e5-5237-4ceb-bc4a-97ad844fc410" />
+<img width="509" height="882" alt="snap_prompt (1)" src="https://github.com/user-attachments/assets/2da940e3-8c81-4bd4-bfb8-35a812674ec8" />
 
-<img width="1611" height="977" alt="3" src="https://github.com/user-attachments/assets/593847a0-b785-466d-8206-f35bd6f0bf57" />
+<img width="453" height="842" alt="snap_prompt (2)" src="https://github.com/user-attachments/assets/3fe2c3c9-39a5-4f23-ad12-dfd9a9cb1592" />
 
-<img width="976" height="810" alt="5" src="https://github.com/user-attachments/assets/0f94a6bb-5592-4fdc-b027-5be54e5e19f6" />
+<img width="446" height="844" alt="snap_prompt (3)" src="https://github.com/user-attachments/assets/14cdc0cd-2919-4e5c-9ce2-a393a0316ec5" />
 
-<img width="969" height="828" alt="6" src="https://github.com/user-attachments/assets/28421d1b-365b-4397-b117-15f9f4933cc8" />
+<img width="477" height="841" alt="snap_prompt (4)" src="https://github.com/user-attachments/assets/56908ea5-9d9d-4082-9bff-6724e61d8c33" />
 
-<img width="1165" height="898" alt="7" src="https://github.com/user-attachments/assets/2b5ed57d-201e-4644-a8bb-ba9cabe6c70b" />
-
-<img width="708" height="894" alt="8" src="https://github.com/user-attachments/assets/c2b3d077-147e-42be-8f7b-8c17a7e22405" />
-
-<img width="726" height="671" alt="9" src="https://github.com/user-attachments/assets/4882b453-bb52-419c-b297-9883287b7f79" />
+<img width="509" height="882" alt="snap_prompt (5)" src="https://github.com/user-attachments/assets/85f22e11-25da-4505-9a69-028fbcb62b26" />
 
 ### Supported Platforms
 
