@@ -27,6 +27,14 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update
 
+      - name: Update apt-repository
+        if: runner.os == 'Linux'
+        run: sudo add-apt-repository universe
+
+      - name: Update package lists
+        if: runner.os == 'Linux'
+        run: sudo apt-get update
+
       - name: Install libicu-dev
         if: runner.os == 'Linux'
         run: sudo apt-get install -y libicu-dev
