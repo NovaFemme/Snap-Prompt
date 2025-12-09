@@ -38,6 +38,7 @@
   },
   "build": {
     "appId": "com.snapprompt.app",
+    "electronVersion": "28.2.0",
     "productName": "Snap Prompt",
     "extends": null,
     "asar": true,
