@@ -50,11 +50,13 @@ jobs:
         with:
           node-version: 18
 
-      - name: Create .env file
-        run: |
-          echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> .env
-          echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> .env
-        shell: bash
+      - name: Build and Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Pass the secrets as standard ENV vars to the builder
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+        run: npm exec electron-builder -- --c.extraMetadata.env.GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID --c.extraMetadata.env.GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET
 
       - name: Install Dependencies
         run: npm install
