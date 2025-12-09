@@ -22,55 +22,40 @@ jobs:
       - name: Check out Git repository
         uses: actions/checkout@v4
 
-      # LINUX SPECIFIC: Install graphics tools required for AppImage creation
-      - name: Update package lists
-        if: runner.os == 'Linux'
-        run: sudo apt-get update
-
-      - name: Update apt-repository
-        if: runner.os == 'Linux'
-        run: sudo add-apt-repository universe
-
-      - name: Update package lists
-        if: runner.os == 'Linux'
-        run: sudo apt-get update
-
-      - name: Install libicu-dev
-        if: runner.os == 'Linux'
-        run: sudo apt-get install -y libicu-dev
-
+      # --- LINUX SETUP ---
       - name: Install Linux Dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y icnsutils graphicsmagick
+          sudo apt-get install -y libicu-dev icnsutils graphicsmagick
 
+      # --- NODE SETUP ---
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      - name: Build and Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Pass the secrets as standard ENV vars to the builder
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-        run: npm exec electron-builder -- --c.extraMetadata.env.GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID --c.extraMetadata.env.GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET
-
+      # --- INSTALL DEPENDENCIES (Fixes the "Cannot compute electron version" error) ---
       - name: Install Dependencies
         run: npm install
 
-      # Build the app. 
-      # Note: Mac build will generate an unsigned .dmg which works but requires user override.
-      # FIXED: Added 'CI=false' to ignore ESLint deprecation warnings
-      - name: Build Electron App
-        run: npm run dist
+      # --- SECRETS SETUP ---
+      # Creates the file so "npm run dist" can bundle it
+      - name: Create .env file
+        run: |
+          echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> .env
+          echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> .env
+        shell: bash
+
+      # --- BUILD ---
+      # Runs "react-scripts build" AND "electron-builder" together
+      - name: Build and Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CI: false   # <--- Add this here!
+          CI: false 
+        run: npm run dist
 
-      # Upload artifacts using v4 (Fixes deprecation error)
+      # --- UPLOAD ---
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
