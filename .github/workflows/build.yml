@@ -43,15 +43,15 @@ jobs:
       # Creates the file so "npm run dist" can bundle it
       - name: Create .env file
         run: |
-          echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" >> .env
-          echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" >> .env
+          echo "GOOGLE_CLIENT_ID=${{ vars.GOOGLE_CLIENT_ID }}" >> .env
+          echo "GOOGLE_CLIENT_SECRET=${{ vars.GOOGLE_CLIENT_SECRET }}" >> .env
         shell: bash
 
       # --- BUILD ---
       # Runs "react-scripts build" AND "electron-builder" together
       - name: Build and Release
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ vars.GITHUB_TOKEN }}
           CI: false 
         run: npm run dist
 
