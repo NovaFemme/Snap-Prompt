@@ -50,8 +50,13 @@
       "build/**/*",
       "electron/**/*",
       "src/items/**/*",
-      "package.json",
-      ".env"
+      "package.json"
+    ],
+    "extraResources": [
+    {
+      "from": ".env",
+      "to": ".env"
+    }
     ],
     "win": {
       "target": "nsis",

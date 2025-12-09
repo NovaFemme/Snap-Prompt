@@ -4,15 +4,24 @@ const fs = require('fs');
 const http = require('http');
 const url = require('url');
 const querystring = require('querystring');
+const dotenv = require('dotenv');
 
 // --- 1. CONFIGURATION & PATH FIXES ---
 
 // UNIVERSAL PATH LOGIC
 // In Dev: __dirname is /electron. .env is in parent (/). Result: /electron/../.env
 // In Prod: __dirname is /resources/app.asar/electron. .env is in /resources/app.asar/.env. Result: /electron/../.env
-const envPath = path.resolve(__dirname, '../.env');
+const envPath = app.isPackaged 
+    ? path.join(process.resourcesPath, '.env') 
+    : path.join(__dirname, '../.env');
 
-require('dotenv').config({ path: envPath });
+// 2. Load the config
+dotenv.config({ path: envPath });
+//require('dotenv').config({ path: envPath });
+
+// Debugging (Optional: logs to command line if you run from terminal)
+console.log(`Looking for .env at: ${envPath}`);
+console.log(`Loaded Client ID: ${process.env.GOOGLE_CLIENT_ID ? 'YES' : 'NO'}`);
 
 const USER_DATA_PATH = app.getPath('userData');
 const DATA_FILE = path.join(USER_DATA_PATH, 'snap-prompts.json');
