@@ -9,7 +9,7 @@
 
 ## 📖 About
 Snap Prompts is a modern desktop application designed for AI artists and Stable Diffusion users. It solves the problem of scattered prompt libraries by providing a centralized, secure way to store, edit, and visualize your prompts.
-Instead of relying on third-party servers, Snap Prompts uses your own Google Drive as the backend storage, ensuring you maintain full ownership and privacy of your data while keeping it synced across Windows, macOS, and Linux.
+Instead of relying on third-party servers, Snap Prompts uses your own Google Drive as the backend storage, ensuring you maintain full ownership and privacy of your data while keeping it synced across Windows.
 * ✨ **Features**
 * ☁️ **Google Drive Sync:** Automatically syncs your JSON library to a dedicated folder in your Google Drive. Work on your PC, switch to your laptop, and pick up right where you left off.
 * 🖼️ **Image Attachments:** Attach reference images (up to 1MB) directly to your prompts. Images are encoded and stored securely within your library.
@@ -33,8 +33,6 @@ Instead of relying on third-party servers, Snap Prompts uses your own Google Dri
 ### Supported Platforms
 
 **Windows:** Windows 10/11 (.exe)
-**macOS:** 10.13+ (.dmg)
-**Linux:** AppImage (.AppImage)
 
 🛠️ **Development**
 
