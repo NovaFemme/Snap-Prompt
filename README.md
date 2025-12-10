@@ -30,9 +30,10 @@ Instead of relying on third-party servers, Snap Prompts uses your own Google Dri
 
 <img width="477" height="841" alt="snap_prompt (4)" src="https://github.com/user-attachments/assets/56908ea5-9d9d-4082-9bff-6724e61d8c33" />
 
-### Supported Platforms
-
-**Windows:** Windows 10/11 (.exe)
+## Supported Platforms
+* **Windows:** Windows 10/11 (.exe)
+* **macOS: 10.13+ (.dmg)
+* **Linux: AppImage (.AppImage)
 
 🛠️ **Development**
 
