@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Save, Plus, AlertCircle, Check, Loader2, X, 
-  History, Trash2, Calendar, ArrowLeft, Edit2, Minimize2, Maximize2,
-  Sliders, FileText, Ban, Image as ImageIcon, Upload, Lock, MessageSquare, LogOut, 
-  Heart, Copy, Clipboard // <--- ADDED Copy and Clipboard here
+  Trash2, Calendar, ArrowLeft, Maximize2,
+  Sliders, FileText, Ban, Upload, Lock, MessageSquare, LogOut, 
+  Heart, Copy, Clipboard, Music, Tag, Mic2
 } from 'lucide-react';
 
 // --- IMAGE HANDLING INSTRUCTIONS ---
@@ -66,7 +66,16 @@ if (!window.electron) {
           modeltypes: ["Checkpoint", "LoRA"], 
           checkpointtypes: ["Merged", "Trained"], 
           modelfileformats: ["Safe Tensor", "ckpt"], 
-          modelresolutions: ["1024x1024", "512x512"] 
+          modelresolutions: ["1024x1024", "512x512"],
+          lyric_genres: ["Pop", "Hip-Hop", "R&B", "Rock", "Electronic", "House", "Techno", "Ambient", "Lo-Fi", "Jazz", "Blues", "Country", "Folk", "Classical", "Metal", "Reggae", "Soul", "Funk", "Trap", "Deep Tech House", "Middle Eastern", "World", "Latin", "Afrobeats", "Drum & Bass", "Dubstep"],
+          lyric_languages: ["English", "Spanish", "French", "German", "Japanese", "Korean", "Arabic"],
+          lyric_keyscales: ["C Major", "C Minor", "D Major", "D Minor", "E Major", "A Minor", "G Major"],
+          lyric_diffusionmodels: ["stable-audio-open-1.0", "audioldm2-music", "musicldm-base"],
+          lyric_diffusionmodelweightdtypes: ["fp32", "fp16", "bf16", "int8"],
+          lyric_cliploaders: ["clip_l", "clip_g", "t5xxl"],
+          lyric_cliploadertypes: ["sdxl", "sd3", "flux", "stable_audio"],
+          lyric_samplernames: ["euler", "dpmpp_2m", "dpmpp_3m_sde", "ddim"],
+          lyric_samplerschedulers: ["normal", "karras", "exponential", "simple"]
       };
     },
     resizeWindow: (min) => console.log(`Window resize requested. Mini mode: ${min}`),
@@ -159,7 +168,11 @@ const App = () => {
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', onConfirm: () => {}, isDestructive: false, confirmText: 'Confirm' });
 
   // Grouping State
-  const [groupBy, setGroupBy] = useState('none'); 
+  const [groupBy, setGroupBy] = useState('none');
+  
+  // Library Mode: 'image' or 'song'
+  const [libraryMode, setLibraryMode] = useState('image');
+  const [songEditorView, setSongEditorView] = useState('content');
 
   const [formData, setFormData] = useState({
     id: null,
@@ -197,17 +210,61 @@ const App = () => {
     promptDate: new Date().toISOString().split('T')[0]
   });
 
+  const defaultSongForm = {
+    id: null,
+    type: 'song',
+    title: "",
+    favourite: false,
+    // Tab 01
+    genre: "",
+    prompt: "",
+    lyrics: "",
+    tags: "",
+    // Tab 02
+    duration: 0,
+    bpm: 120,
+    timeSignature: 4,
+    language: "",
+    keyscale: "",
+    cfgScale: 7.0,
+    temperature: 1.0,
+    topP: 0.9,
+    topK: 50,
+    minP: 0.05,
+    // Tab 03
+    diffusionModel: "",
+    diffusionModelWeightDtype: "",
+    clipLoader01: "",
+    clipLoader02: "",
+    clipLoaderType: "",
+    seed: -1,
+    modelShift: 0.0,
+    // Tab 04
+    samplerSteps: 20,
+    samplerCfg: 7.0,
+    samplerName: "",
+    samplerScheduler: "",
+    samplerDenoise: 1.0,
+    promptDate: new Date().toISOString().split('T')[0]
+  };
+
+  const [songFormData, setSongFormData] = useState(defaultSongForm);
+
   // --- HELPER: Group Prompts ---
   const getGroupedPrompts = () => {
-    if (groupBy === 'none') return { "All Prompts": history };
+    const filtered = libraryMode === 'song'
+      ? history.filter(p => p.type === 'song')
+      : history.filter(p => p.type !== 'song');
 
-    return history.reduce((groups, prompt) => {
+    if (groupBy === 'none') return { "All Prompts": filtered };
+
+    return filtered.reduce((groups, prompt) => {
       let key = prompt[groupBy];
       if (groupBy === 'promptDate') {
-        key = key ? new Date(key).toLocaleDateString() : 'No Date'; 
+        key = key ? new Date(key).toLocaleDateString() : 'No Date';
       } else if (groupBy === 'favourite') {
         key = key ? '❤️ Favourites' : 'Standard';
-      } else if (!key) {
+      } else if (!key || key === '') {
         key = 'Uncategorized';
       }
       if (!groups[key]) groups[key] = [];
@@ -356,17 +413,60 @@ const App = () => {
   };
 
   const handleAddNew = () => {
-    setFormData({ id: null, title: "", favourite: false, image: "", positive: "", negative: "", stylePrompt: "", refinerPrompt: "", width: 1024, height: 1024, steps: 30, cfgScale: 7.0, seed: -1, sampler: "DPM++ 2M Karras", scheduler: "Simple", basemodel: "SDXL_1.0.safetensors", checkpointtype: "Merged", modelfileformat: "Safe Tensor", modeltype:"Checkpoint", vae: "Automatic", clipSkip: 2, denoise: 0.7, addNoise: true, startStep: 0, endStep: 100, processType: "Text to Image", usedPromptType: "SDXL", category: "Character Design", subCategory: "", comment: "", modelUrl: "", promptDate: new Date().toISOString().split('T')[0] });
-    setErrorMsg(''); setIsSaving(false); setEditorView('prompt'); setActiveTab('editor');
+    if (libraryMode === 'song') {
+      setSongFormData({ ...defaultSongForm });
+      setErrorMsg(''); setIsSaving(false); setSongEditorView('content'); setActiveTab('song-editor');
+    } else {
+      setFormData({ id: null, title: "", favourite: false, image: "", positive: "", negative: "", stylePrompt: "", refinerPrompt: "", width: 1024, height: 1024, steps: 30, cfgScale: 7.0, seed: -1, sampler: "DPM++ 2M Karras", scheduler: "Simple", basemodel: "SDXL_1.0.safetensors", checkpointtype: "Merged", modelfileformat: "Safe Tensor", modeltype:"Checkpoint", vae: "Automatic", clipSkip: 2, denoise: 0.7, addNoise: true, startStep: 0, endStep: 100, processType: "Text to Image", usedPromptType: "SDXL", category: "Character Design", subCategory: "", comment: "", modelUrl: "", promptDate: new Date().toISOString().split('T')[0] });
+      setErrorMsg(''); setIsSaving(false); setEditorView('prompt'); setActiveTab('editor');
+    }
   };
 
   const handleEdit = (prompt) => {
-    setFormData(prompt); setErrorMsg(''); setIsSaving(false); setEditorView('prompt'); setActiveTab('editor');
+    if (prompt.type === 'song') {
+      setSongFormData(prompt); setErrorMsg(''); setIsSaving(false); setSongEditorView('content'); setActiveTab('song-editor');
+    } else {
+      setFormData(prompt); setErrorMsg(''); setIsSaving(false); setEditorView('prompt'); setActiveTab('editor');
+    }
   };
 
   const handleDelete = (e, id) => {
     e.stopPropagation();
     showModal("Delete Prompt?", "This action cannot be undone.", async () => { await window.electron.deletePrompt(id); loadHistory(); }, true, "Delete");
+  };
+
+  const handleSaveSong = async (silent = false) => {
+    if (!songFormData.title.trim()) {
+      if (!silent) setErrorMsg("Title is required!");
+      return false;
+    }
+    setIsSaving(true);
+    setErrorMsg('');
+    try {
+      const result = await window.electron.saveData({ ...songFormData, type: 'song' });
+      if (!result.success) {
+        setErrorMsg(result.error || "Unknown error occurred");
+        setIsSaving(false);
+        return false;
+      }
+      setSongFormData(prev => ({ ...prev, id: result.id }));
+      if (!silent) setTimeout(() => setIsSaving(false), 1000); else setIsSaving(false);
+      await loadHistory();
+      return true;
+    } catch (err) {
+      setErrorMsg("System Error: " + err.message);
+      setIsSaving(false);
+      return false;
+    }
+  };
+
+  const handleSongBackOrCancel = async () => {
+    if (!songFormData.id) {
+      showModal("Discard Song?", "You haven't saved this song yet. Discard?", () => setActiveTab('history'), true, "Discard");
+      return;
+    }
+    const saved = await handleSaveSong(true);
+    if (saved) setActiveTab('history');
   };
 
   // 1. Loading State
@@ -432,27 +532,30 @@ const App = () => {
 
           <div className="flex flex-col">
             <div className="font-bold text-sm tracking-wide text-gray-200 flex items-center gap-2">
-              {activeTab === 'history' ? 'Prompt Library' : (formData.id ? 'Edit Prompt' : 'New Prompt')}
+            {activeTab === 'history' ? 'Prompt Library' : activeTab === 'song-editor' ? (songFormData.id ? 'Edit Song' : 'New Song') : (formData.id ? 'Edit Prompt' : 'New Prompt')}
             </div>
             <div className="text-[10px] text-gray-500 font-mono uppercase tracking-wider">
-               {activeTab === 'history' ? `${history.length} Saved` : 'Editor'}
+               {activeTab === 'history' ? `${history.length} Saved` : activeTab === 'song-editor' ? 'Song Editor' : 'Editor'}
             </div>
           </div>
         </div>
 
         <div className="flex gap-2 no-drag">
           {/* Heart Button */}
-          {activeTab === 'editor' && (
+          {(activeTab === 'editor' || activeTab === 'song-editor') && (
             <button 
-              onClick={() => setFormData(prev => ({...prev, favourite: !prev.favourite}))}
+              onClick={() => {
+                if (activeTab === 'song-editor') setSongFormData(prev => ({...prev, favourite: !prev.favourite}));
+                else setFormData(prev => ({...prev, favourite: !prev.favourite}));
+              }}
               className={`p-2 rounded-lg transition flex items-center justify-center ${
-                formData.favourite 
+                (activeTab === 'song-editor' ? songFormData.favourite : formData.favourite)
                   ? 'text-red-500 hover:bg-red-900/20' 
                   : 'text-gray-400 hover:bg-[#333] hover:text-gray-200'
               }`}
               title="Toggle Favourite"
             >
-              <Heart size={18} fill={formData.favourite ? "currentColor" : "none"} />
+              <Heart size={18} fill={(activeTab === 'song-editor' ? songFormData.favourite : formData.favourite) ? "currentColor" : "none"} />
             </button>
           )}
 
@@ -467,28 +570,47 @@ const App = () => {
       <div className="flex-1 overflow-hidden relative flex flex-col">
         {activeTab === 'history' && (
           <div className="h-full flex flex-col">
-            <div className="flex items-center justify-between p-2 mb-2 bg-[#252525] border-b border-[#333]">
-              <div className="flex items-center space-x-2">
-                <span className="text-xs font-bold text-gray-500 uppercase mr-2">Group By:</span>
-                <select 
-                  value={groupBy} 
-                  onChange={(e) => setGroupBy(e.target.value)}
-                  className="bg-[#1a1a1a] border border-[#333] text-gray-300 text-xs rounded px-2 py-1 outline-none focus:border-blue-500"
-                >
-                  <option value="none">None (List View)</option>
-                  <option value="promptDate">Prompt Date</option>
-                  <option value="category">Category</option>
-                  <option value="favourite">Favourite</option>
-                  <option value="modelresolution">Model Resolution</option>
-                  <option value="modeltype">Model Type</option>
-                  <option value="basemodel">Base Model</option>
-                  <option value="processType">Process Type</option>
-                </select>
-              </div>
+            <div className="flex items-center gap-1.5 px-2 py-2 bg-[#252525] border-b border-[#333]">
+              <select
+                value={libraryMode}
+                onChange={(e) => { setLibraryMode(e.target.value); setGroupBy('none'); }}
+                className="bg-[#1a1a1a] border border-[#333] text-gray-300 text-xs rounded px-1.5 py-1 outline-none focus:border-purple-500 min-w-0 flex-shrink-0"
+                style={{maxWidth: '110px'}}
+              >
+                <option value="image">🖼 Images</option>
+                <option value="song">🎵 Songs</option>
+              </select>
+              <select 
+                value={groupBy} 
+                onChange={(e) => setGroupBy(e.target.value)}
+                className="bg-[#1a1a1a] border border-[#333] text-gray-300 text-xs rounded px-1.5 py-1 outline-none focus:border-blue-500 min-w-0 flex-1"
+              >
+                <option value="none">Group: None</option>
+                {libraryMode === 'song' ? (
+                  <>
+                    <option value="genre">Genre</option>
+                    <option value="keyscale">Key / Scale</option>
+                    <option value="diffusionModel">Model</option>
+                    <option value="favourite">Favourite</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="promptDate">Date</option>
+                    <option value="category">Category</option>
+                    <option value="favourite">Favourite</option>
+                    <option value="modelresolution">Resolution</option>
+                    <option value="modeltype">Model Type</option>
+                    <option value="basemodel">Base Model</option>
+                    <option value="processType">Process</option>
+                  </>
+                )}
+              </select>
+              <div className="flex-shrink-0">
 
-               <button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-500 text-white p-1.5 rounded-lg shadow-lg transition-all hover:scale-105 flex items-center gap-1 pr-2">
+               <button onClick={handleAddNew} className={`${libraryMode === 'song' ? 'bg-purple-600 hover:bg-purple-500' : 'bg-blue-600 hover:bg-blue-500'} text-white p-1.5 rounded-lg shadow-lg transition-all hover:scale-105 flex items-center gap-1 pr-2`}>
                   <Plus size={16} /> <span className="text-xs font-bold">NEW</span>
                </button>
+            </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-2 custom-scrollbar space-y-2">
@@ -511,21 +633,48 @@ const App = () => {
                   <div className="p-2 space-y-2">
                     {groupItems.map((item) => (
                       <div key={item.id} onClick={() => handleEdit(item)} className="group/card bg-[#1e1e1e] hover:bg-[#252525] border border-[#333] hover:border-[#555] rounded-lg p-3 cursor-pointer transition-all shadow-sm relative flex gap-3">
-                        {item.image && (
-                            <div className="flex-shrink-0" onClick={(e) => { e.stopPropagation(); setPreviewImage(item.image); }}>
-                                <img src={item.image} alt="Ref" className="w-20 h-20 object-cover rounded bg-[#121212] border border-[#333] hover:opacity-80 hover:scale-105 transition duration-200 cursor-zoom-in" />
-                            </div>
-                        )}
-                        <div className="flex-1 min-w-0 flex flex-col">
-                            <div className="flex justify-between items-start mb-1">
+                        {item.type === 'song' ? (
+                          <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                            <div className="flex justify-between items-start">
+                              <div className="flex items-center gap-2">
+                                <Music size={14} className="text-purple-400 flex-shrink-0" />
                                 <h3 className="font-bold text-gray-200 truncate pr-8">{item.title}</h3>
-                                <button onClick={(e) => handleDelete(e, item.id)} className="absolute top-3 right-3 p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded transition"><Trash2 size={14} /></button>
+                              </div>
+                              <button onClick={(e) => handleDelete(e, item.id)} className="absolute top-3 right-3 p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded transition"><Trash2 size={14} /></button>
                             </div>
-                            <p className="text-xs text-gray-500 mb-2 flex items-center gap-1"><Calendar size={10}/> {item.promptDate || new Date(parseInt(item.id)).toLocaleDateString()}</p>
-                            <div className="text-sm text-gray-400 line-clamp-2 font-mono text-xs bg-[#121212] p-2 rounded border border-[#222] h-full">
-                                {item.positive || <span className="text-gray-600 italic">No prompt text</span>}
+                            {(item.genre || item.tags) && (
+                              <div className="flex gap-1 flex-wrap">
+                                {item.genre && (
+                                  <span className="text-[10px] bg-purple-900/40 text-purple-300 px-1.5 py-0.5 rounded border border-purple-800/40 font-bold">{item.genre}</span>
+                                )}
+                                {item.tags && item.tags.split(',').map(tag => tag.trim()).filter(Boolean).map(tag => (
+                                  <span key={tag} className="text-[10px] bg-[#1a1a1a] text-gray-500 px-1.5 py-0.5 rounded border border-[#2a2a2a]">{tag}</span>
+                                ))}
+                              </div>
+                            )}
+                            <div className="text-xs text-gray-500 bg-[#121212] p-2 rounded border border-[#222] line-clamp-2 font-mono">
+                              {item.prompt || <span className="text-gray-600 italic">No prompt yet</span>}
                             </div>
-                        </div>
+                          </div>
+                        ) : (
+                          <>
+                            {item.image && (
+                                <div className="flex-shrink-0" onClick={(e) => { e.stopPropagation(); setPreviewImage(item.image); }}>
+                                    <img src={item.image} alt="Ref" className="w-20 h-20 object-cover rounded bg-[#121212] border border-[#333] hover:opacity-80 hover:scale-105 transition duration-200 cursor-zoom-in" />
+                                </div>
+                            )}
+                            <div className="flex-1 min-w-0 flex flex-col">
+                                <div className="flex justify-between items-start mb-1">
+                                    <h3 className="font-bold text-gray-200 truncate pr-8">{item.title}</h3>
+                                    <button onClick={(e) => handleDelete(e, item.id)} className="absolute top-3 right-3 p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded transition"><Trash2 size={14} /></button>
+                                </div>
+                                <p className="text-xs text-gray-500 mb-2 flex items-center gap-1"><Calendar size={10}/> {item.promptDate || new Date(parseInt(item.id)).toLocaleDateString()}</p>
+                                <div className="text-sm text-gray-400 line-clamp-2 font-mono text-xs bg-[#121212] p-2 rounded border border-[#222] h-full">
+                                    {item.positive || <span className="text-gray-600 italic">No prompt text</span>}
+                                </div>
+                            </div>
+                          </>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -756,7 +905,313 @@ const App = () => {
             </div>
           </div>
         )}
+
+        {/* SONG EDITOR */}
+        {activeTab === 'song-editor' && (
+          <div className="flex flex-col h-full">
+            <div className="flex border-b border-[#333] bg-[#1a1a1a]">
+              <button onClick={() => setSongEditorView('content')} className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition ${songEditorView === 'content' ? 'text-purple-400 bg-[#222] border-b-2 border-purple-500' : 'text-gray-500 hover:bg-[#222]'}`}><Mic2 size={12}/> Content</button>
+              <button onClick={() => setSongEditorView('generation')} className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition ${songEditorView === 'generation' ? 'text-purple-400 bg-[#222] border-b-2 border-purple-500' : 'text-gray-500 hover:bg-[#222]'}`}><Sliders size={12}/> Generation</button>
+              <button onClick={() => setSongEditorView('model')} className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition ${songEditorView === 'model' ? 'text-purple-400 bg-[#222] border-b-2 border-purple-500' : 'text-gray-500 hover:bg-[#222]'}`}><FileText size={12}/> Model</button>
+              <button onClick={() => setSongEditorView('sampler')} className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition ${songEditorView === 'sampler' ? 'text-purple-400 bg-[#222] border-b-2 border-purple-500' : 'text-gray-500 hover:bg-[#222]'}`}><Music size={12}/> Sampler</button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
+              {errorMsg && <div className="bg-red-900/20 border border-red-800 text-red-200 px-3 py-2 rounded text-sm flex items-center gap-2 animate-pulse"><AlertCircle size={16} /> {errorMsg}</div>}
+
+              {/* TAB 01 — CONTENT */}
+              {songEditorView === 'content' && (
+                <>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Title <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      value={songFormData.title}
+                      onChange={e => { setErrorMsg(''); setSongFormData(prev => ({...prev, title: e.target.value})); }}
+                      className="w-full bg-[#1a1a1a] border border-[#333] focus:border-purple-500 rounded p-2 text-white outline-none transition"
+                      placeholder="e.g. Midnight Drift"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Genre</label>
+                    <select
+                      value={songFormData.genre || ''}
+                      onChange={e => setSongFormData(prev => ({...prev, genre: e.target.value}))}
+                      className="w-full bg-[#1a1a1a] border border-[#333] focus:border-purple-500 rounded p-2 text-sm text-gray-300 outline-none transition"
+                    >
+                      <option value="">-- Select Genre --</option>
+                      {(configs.lyric_genres || []).map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Prompt</label>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleCopy(songFormData.prompt)} className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition" title="Copy"><Copy size={12}/></button>
+                        <button onClick={async () => { try { const t = await navigator.clipboard.readText(); setSongFormData(p => ({...p, prompt: t})); } catch {} }} className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition" title="Paste"><Clipboard size={12}/></button>
+                      </div>
+                    </div>
+                    <textarea
+                      value={songFormData.prompt}
+                      onChange={e => setSongFormData(prev => ({...prev, prompt: e.target.value}))}
+                      className="w-full h-24 bg-[#1a1a1a] border border-[#333] focus:border-purple-500/50 rounded p-2 text-sm text-gray-200 outline-none resize-none font-mono"
+                      placeholder="Describe the song style, feel, or generation instructions..."
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-xs font-bold text-purple-400 uppercase tracking-wider ml-1 flex items-center gap-1"><Mic2 size={11}/> Lyrics</label>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleCopy(songFormData.lyrics)} className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition" title="Copy"><Copy size={12}/></button>
+                        <button onClick={async () => { try { const t = await navigator.clipboard.readText(); setSongFormData(p => ({...p, lyrics: t})); } catch {} }} className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition" title="Paste"><Clipboard size={12}/></button>
+                      </div>
+                    </div>
+                    <textarea
+                      value={songFormData.lyrics}
+                      onChange={e => setSongFormData(prev => ({...prev, lyrics: e.target.value}))}
+                      className="w-full h-40 bg-[#1a1a1a] border border-[#333] focus:border-purple-500/50 rounded p-2 text-sm text-gray-200 outline-none resize-none font-mono"
+                      placeholder={"[Verse 1]\nWrite your lyrics here...\n\n[Chorus]\n..."}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 flex items-center gap-1"><Tag size={11}/> Tags</label>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleCopy(songFormData.tags)} className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition" title="Copy"><Copy size={12}/></button>
+                        <button onClick={async () => { try { const t = await navigator.clipboard.readText(); setSongFormData(p => ({...p, tags: t})); } catch {} }} className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition" title="Paste"><Clipboard size={12}/></button>
+                      </div>
+                    </div>
+                    <textarea
+                      value={songFormData.tags}
+                      onChange={e => setSongFormData(prev => ({...prev, tags: e.target.value}))}
+                      className="w-full h-20 bg-[#1a1a1a] border border-[#333] focus:border-purple-500/50 rounded p-2 text-sm text-gray-300 outline-none resize-none font-mono"
+                      placeholder={"dark, cinematic, upbeat, lo-fi\ninstrumental, 808 bass, oud"}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* TAB 02 — GENERATION */}
+              {songEditorView === 'generation' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Duration (sec)</label>
+                      <input type="number" step="1" min="0" value={songFormData.duration}
+                        onChange={e => setSongFormData(p => ({...p, duration: parseInt(e.target.value) || 0}))}
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500" />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">BPM</label>
+                      <input type="number" step="1" min="1" value={songFormData.bpm}
+                        onChange={e => setSongFormData(p => ({...p, bpm: parseInt(e.target.value) || 0}))}
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500" />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Time Signature</label>
+                      <input type="number" step="1" min="1" value={songFormData.timeSignature}
+                        onChange={e => setSongFormData(p => ({...p, timeSignature: parseInt(e.target.value) || 4}))}
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500" />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Language</label>
+                      <select value={songFormData.language} onChange={e => setSongFormData(p => ({...p, language: e.target.value}))}
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500">
+                        <option value="">-- Select --</option>
+                        {(configs.lyric_languages || []).map(l => <option key={l} value={l}>{l}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="col-span-2 space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Key / Scale</label>
+                      <select value={songFormData.keyscale} onChange={e => setSongFormData(p => ({...p, keyscale: e.target.value}))}
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500">
+                        <option value="">-- Select --</option>
+                        {(configs.lyric_keyscales || []).map(k => <option key={k} value={k}>{k}</option>)}
+                      </select>
+                    </div>
+
+                  </div>
+
+                  <div className="border-t border-[#2a2a2a] pt-3 space-y-3">
+                    <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest ml-1">Sampling Parameters</p>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">CFG Scale: {songFormData.cfgScale.toFixed(1)}</label>
+                      <input type="range" min="1" max="30" step="0.1" value={songFormData.cfgScale}
+                        onChange={e => setSongFormData(p => ({...p, cfgScale: parseFloat(e.target.value)}))}
+                        className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-purple-500" />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Temperature: {songFormData.temperature.toFixed(2)}</label>
+                      <input type="range" min="0" max="2" step="0.01" value={songFormData.temperature}
+                        onChange={e => setSongFormData(p => ({...p, temperature: parseFloat(e.target.value)}))}
+                        className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-purple-500" />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Top P: {songFormData.topP.toFixed(2)}</label>
+                      <input type="range" min="0" max="1" step="0.01" value={songFormData.topP}
+                        onChange={e => setSongFormData(p => ({...p, topP: parseFloat(e.target.value)}))}
+                        className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-purple-500" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-gray-500 uppercase ml-1">Top K</label>
+                        <input type="number" step="1" min="0" value={songFormData.topK}
+                          onChange={e => setSongFormData(p => ({...p, topK: parseInt(e.target.value) || 0}))}
+                          className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-gray-500 uppercase ml-1">Min P</label>
+                        <input type="number" step="0.001" min="0" max="1" value={songFormData.minP}
+                          onChange={e => setSongFormData(p => ({...p, minP: parseFloat(e.target.value) || 0}))}
+                          className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 03 — MODEL */}
+              {songEditorView === 'model' && (
+                <div className="space-y-3">
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Diffusion Model</label>
+                    <select value={songFormData.diffusionModel} onChange={e => setSongFormData(p => ({...p, diffusionModel: e.target.value}))}
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500">
+                      <option value="">-- Select --</option>
+                      {(configs.lyric_diffusionmodels || []).map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Model Weight DType</label>
+                    <select value={songFormData.diffusionModelWeightDtype} onChange={e => setSongFormData(p => ({...p, diffusionModelWeightDtype: e.target.value}))}
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500">
+                      <option value="">-- Select --</option>
+                      {(configs.lyric_diffusionmodelweightdtypes || []).map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Clip Loader 01</label>
+                    <select value={songFormData.clipLoader01} onChange={e => setSongFormData(p => ({...p, clipLoader01: e.target.value}))}
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500">
+                      <option value="">-- Select --</option>
+                      {(configs.lyric_cliploaders || []).map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Clip Loader 02</label>
+                    <select value={songFormData.clipLoader02} onChange={e => setSongFormData(p => ({...p, clipLoader02: e.target.value}))}
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500">
+                      <option value="">-- Select --</option>
+                      {(configs.lyric_cliploaders || []).map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Clip Loader Type</label>
+                    <select value={songFormData.clipLoaderType} onChange={e => setSongFormData(p => ({...p, clipLoaderType: e.target.value}))}
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500">
+                      <option value="">-- Select --</option>
+                      {(configs.lyric_cliploadertypes || []).map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Seed</label>
+                      <input type="number" step="1" value={songFormData.seed}
+                        onChange={e => setSongFormData(p => ({...p, seed: parseInt(e.target.value)}))}
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Model Shift</label>
+                      <input type="number" step="0.01" value={songFormData.modelShift}
+                        onChange={e => setSongFormData(p => ({...p, modelShift: parseFloat(e.target.value) || 0}))}
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500" />
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* TAB 04 — SAMPLER */}
+              {songEditorView === 'sampler' && (
+                <div className="space-y-3">
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Sampler Steps: {songFormData.samplerSteps}</label>
+                    <input type="range" min="1" max="150" step="1" value={songFormData.samplerSteps}
+                      onChange={e => setSongFormData(p => ({...p, samplerSteps: parseInt(e.target.value)}))}
+                      className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-purple-500" />
+                    <div className="flex justify-between text-[10px] text-gray-600"><span>1</span><span>75</span><span>150</span></div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Sampler CFG: {songFormData.samplerCfg.toFixed(1)}</label>
+                    <input type="range" min="1" max="30" step="0.1" value={songFormData.samplerCfg}
+                      onChange={e => setSongFormData(p => ({...p, samplerCfg: parseFloat(e.target.value)}))}
+                      className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-purple-500" />
+                    <div className="flex justify-between text-[10px] text-gray-600"><span>1</span><span>15</span><span>30</span></div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Sampler Denoise: {songFormData.samplerDenoise.toFixed(2)}</label>
+                    <input type="range" min="0" max="1" step="0.01" value={songFormData.samplerDenoise}
+                      onChange={e => setSongFormData(p => ({...p, samplerDenoise: parseFloat(e.target.value)}))}
+                      className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-purple-500" />
+                    <div className="flex justify-between text-[10px] text-gray-600"><span>0.00</span><span>0.50</span><span>1.00</span></div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Sampler Name</label>
+                    <select value={songFormData.samplerName} onChange={e => setSongFormData(p => ({...p, samplerName: e.target.value}))}
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500">
+                      <option value="">-- Select --</option>
+                      {(configs.lyric_samplernames || []).map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Sampler Scheduler</label>
+                    <select value={songFormData.samplerScheduler} onChange={e => setSongFormData(p => ({...p, samplerScheduler: e.target.value}))}
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500">
+                      <option value="">-- Select --</option>
+                      {(configs.lyric_samplerschedulers || []).map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 bg-[#1a1a1a]/95 backdrop-blur border-t border-[#333] flex gap-3">
+              <button onClick={handleSongBackOrCancel} className={`flex-1 py-2 rounded-lg font-bold transition flex items-center justify-center gap-2 ${!songFormData.id ? 'bg-red-900/20 text-red-400 hover:bg-red-900/40' : 'bg-[#333] hover:bg-[#444] text-gray-200'}`}>
+                {!songFormData.id ? <Ban size={18} /> : <ArrowLeft size={18} />} {!songFormData.id ? 'Cancel' : 'Back'}
+              </button>
+              <button onClick={() => handleSaveSong(false)} disabled={isSaving} className={`flex-1 ${isSaving ? 'bg-green-600' : 'bg-purple-600 hover:bg-purple-500'} text-white py-2 rounded-lg font-bold shadow-lg shadow-purple-900/20 transition-all flex items-center justify-center gap-2`}>
+                {isSaving ? <Check size={18} /> : <Save size={18} />} {isSaving ? 'Saved!' : 'Save Song'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
 
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }

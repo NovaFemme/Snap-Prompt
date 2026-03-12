@@ -1,0 +1,9 @@
+["clip_l", "clip_g", "clip_l_clip_g", "t5xxl", "t5xxl_fp8_e4m3fn", "t5xxl_fp16", "e5_large", "e5_large_v2", "e5_mistral_7b", "bge_large", "jina_clip_v2", "qwen_0.6b_ace15.safetensors",
+  "qwen_1.7b_ace15.safetensors",
+  "qwen_4b_ace15.safetensors",
+  "qwen_7b_ace15.safetensors",
+  "qwen_14b_ace15.safetensors",
+  "qwen_0.6b_ace15_turbo.safetensors",
+  "qwen_1.7b_ace15_turbo.safetensors",
+  "qwen_4b_ace15_turbo.safetensors",
+  "qwen_7b_ace15_turbo.safetensors"]

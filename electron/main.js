@@ -372,8 +372,17 @@ ipcMain.handle('get-configs', async () => {
   const checkpointtypes = loadJSON('checkpointtypes.json');
   const modelfileformats = loadJSON('modelfileformats.json');
   const modeltypes = loadJSON('modeltypes.json');
-  const schedulers = loadJSON('schedulers.json');
   const modelresolutions = loadJSON('modelresolutions.json');
+  const schedulers = loadJSON('schedulers.json');
+  const lyric_languages = loadJSON('lyric_languages.json');
+  const lyric_keyscales = loadJSON('lyric_keyscales.json');
+  const lyric_diffusionmodels = loadJSON('lyric_diffusionmodels.json');
+  const lyric_diffusionmodelweightdtypes = loadJSON('lyric_diffusionmodelweightdtypes.json');
+  const lyric_cliploaders = loadJSON('lyric_cliploaders.json');
+  const lyric_cliploadertypes = loadJSON('lyric_cliploadertypes.json');
+  const lyric_samplernames = loadJSON('lyric_samplernames.json');
+  const lyric_samplerschedulers = loadJSON('lyric_samplerschedulers.json');
+  const lyric_genres = loadJSON('lyric_genres.json');
 
   const valo = {
     basemodels,
@@ -383,7 +392,16 @@ ipcMain.handle('get-configs', async () => {
     modelfileformats,
     modeltypes,
     schedulers,
-    modelresolutions
+    modelresolutions,
+    lyric_languages,
+    lyric_keyscales,
+    lyric_diffusionmodels,
+    lyric_diffusionmodelweightdtypes,
+    lyric_cliploaders,
+    lyric_cliploadertypes,
+    lyric_samplernames,
+    lyric_samplerschedulers,
+    lyric_genres
   };
   
   // Return the data object directly
@@ -395,7 +413,45 @@ ipcMain.handle('get-configs', async () => {
     modelfileformats,
     modeltypes,
     schedulers,
-    modelresolutions
+    modelresolutions,
+    lyric_languages,
+    lyric_keyscales,
+    lyric_diffusionmodels,
+    lyric_diffusionmodelweightdtypes,
+    lyric_cliploaders,
+    lyric_cliploadertypes,
+    lyric_samplernames,
+    lyric_samplerschedulers,
+    lyric_genres
+  };
+});
+
+// Helper: load from src/song-items/ folder
+function loadSongJSON(filename) {
+  try {
+    const filePath = path.join(__dirname, '..', 'src', 'song-items', filename);
+    const rawData = fs.readFileSync(filePath, 'utf-8');
+    const parsed = JSON.parse(rawData);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map(item => {
+      if (typeof item === 'string') return item;
+      return item.label || item.name || 'Unknown';
+    }).filter(Boolean);
+  } catch (err) {
+    return [];
+  }
+}
+
+ipcMain.handle('get-song-configs', async () => {
+  return {
+    languages:                  loadSongJSON('languages.json'),
+    keyscales:                  loadSongJSON('keyscales.json'),
+    diffusionModels:            loadSongJSON('diffusion-models.json'),
+    diffusionModelWeightDtypes: loadSongJSON('diffusion-model-weight-dtypes.json'),
+    clipLoaders:                loadSongJSON('clip-loaders.json'),
+    clipLoaderTypes:            loadSongJSON('clip-loader-types.json'),
+    samplerNames:               loadSongJSON('sampler-names.json'),
+    samplerSchedulers:          loadSongJSON('sampler-schedulers.json'),
   };
 });
 
