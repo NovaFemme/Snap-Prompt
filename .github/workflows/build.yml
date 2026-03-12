@@ -65,7 +65,8 @@ jobs:
             dist/*.dmg
             dist/*.AppImage
           retention-days: 5
-          
+
+      # --- Make available from github ---
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
@@ -76,4 +77,4 @@ jobs:
             dist/*.AppImage
             dist/*.deb
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ vars.GITHUB_TOKEN }}
