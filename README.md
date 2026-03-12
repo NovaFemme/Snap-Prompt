@@ -12,6 +12,7 @@ Snap Prompts is a modern desktop application designed for AI artists and Stable 
 Instead of relying on third-party servers, Snap Prompts uses your own Google Drive as the backend storage, ensuring you maintain full ownership and privacy of your data while keeping it synced across Windows.
 * ✨ **Features**
 * ☁️ **Google Drive Sync:** Automatically syncs your JSON library to a dedicated folder in your Google Drive. Work on your PC, switch to your laptop, and pick up right where you left off.
+* 🎵 **Song Lyrics Mode:** Store and manage AI music generation workflows with a full 4-tab editor covering content, generation parameters, model config, and sampler settings.
 * 🖼️ **Image Attachments:** Attach reference images (up to 1MB) directly to your prompts. Images are encoded and stored securely within your library.
 * 🎈 **Floating Mini-Mode:** Switch to a compact, floating bubble mode (similar to chat heads) to keep your prompts accessible while working in other apps.
 * 🔒 **Privacy First:** Direct connection to Google APIs. No intermediate servers or data harvesting.
@@ -29,6 +30,16 @@ Instead of relying on third-party servers, Snap Prompts uses your own Google Dri
 <img width="446" height="844" alt="snap_prompt (3)" src="https://github.com/user-attachments/assets/14cdc0cd-2919-4e5c-9ce2-a393a0316ec5" />
 
 <img width="477" height="841" alt="snap_prompt (4)" src="https://github.com/user-attachments/assets/56908ea5-9d9d-4082-9bff-6724e61d8c33" />
+
+## 🆕 What's New in v1.2.0 — Song Lyrics Mode
+
+Version 1.2.0 introduces a dedicated **Song Lyrics** mode alongside the existing Image Prompts library, bringing full AI music generation workflow support to Snap Prompt.
+
+### 🎵 Song Lyrics Mode
+- A new **Mode selector** in the toolbar switches between `🖼 Images` and `🎵 Songs`, keeping the two libraries completely separate
+- Song cards display the **Genre badge**, **tag pills**, and a **prompt preview**
+- **Group By** is now mode-aware — Songs can be grouped by Genre, Key / Scale, Model, or Favourite; Images retain their original grouping options
+- Switching modes automatically resets the active group to prevent stale field mismatches
 
 ## Supported Platforms
 * **Windows:** Windows 10/11 (.exe)
