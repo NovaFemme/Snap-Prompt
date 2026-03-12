@@ -1212,7 +1212,6 @@ const App = () => {
         )}
       </div>
 
-
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #1a1a1a; }
