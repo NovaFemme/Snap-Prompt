@@ -52,7 +52,7 @@ jobs:
       # Runs "react-scripts build" AND "electron-builder" together
       - name: Build and Release
         env:
-          GH_TOKEN: ${{ vars.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: false 
         run: npm run dist
 
@@ -78,4 +78,4 @@ jobs:
             dist/*.AppImage
             dist/*.deb
         env:
-          GITHUB_TOKEN: ${{ vars.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
