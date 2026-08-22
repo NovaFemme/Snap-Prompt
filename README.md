@@ -65,7 +65,7 @@ Any field defined this way will show the **●** indicator in the Custom Options
 <details>
 <summary>📸 Click to view screenshots</summary>
   
-<img width="905" height="208" alt="image" src="https://github.com/user-attachments/assets/5ce8d875-c6b4-4af6-90f9-de00a3bd1aeb" />
+<img width="771" height="418" alt="image" src="https://github.com/user-attachments/assets/9f127d53-b118-42e1-89d0-4f9585d63921" />
 
 <img width="857" height="562" alt="image" src="https://github.com/user-attachments/assets/e93ab84c-e5cf-44b4-a53f-1c123a23e979" />
 
