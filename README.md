@@ -36,15 +36,6 @@ Instead of relying on third-party servers, Snap Prompts uses your own Google Dri
 
 </details>
 
-## 🆕 What's New in v1.2.0 — Song Lyrics Mode
-
-Version 1.2.0 introduces a dedicated **Song Lyrics** mode alongside the existing Image Prompts library, bringing full AI music generation workflow support to Snap Prompt.
-
-### 🎵 Song Lyrics Mode
-- A new **Mode selector** in the toolbar switches between `🖼 Images` and `🎵 Songs`, keeping the two libraries completely separate
-- Song cards display the **Genre badge**, **tag pills**, and a **prompt preview**
-- **Group By** is now mode-aware — Songs can be grouped by Genre, Key / Scale, Model, or Favourite; Images retain their original grouping options
-- Switching modes automatically resets the active group to prevent stale field mismatches
   
 ## 🆕 What's New in v1.3.0 — Custom Config Sync
 
@@ -102,7 +93,15 @@ Any field defined this way will show the **●** indicator in the Custom Options
 
 </details>
 
+## 🆕 What's New in v1.2.0 — Song Lyrics Mode
 
+Version 1.2.0 introduces a dedicated **Song Lyrics** mode alongside the existing Image Prompts library, bringing full AI music generation workflow support to Snap Prompt.
+
+### 🎵 Song Lyrics Mode
+- A new **Mode selector** in the toolbar switches between `🖼 Images` and `🎵 Songs`, keeping the two libraries completely separate
+- Song cards display the **Genre badge**, **tag pills**, and a **prompt preview**
+- **Group By** is now mode-aware — Songs can be grouped by Genre, Key / Scale, Model, or Favourite; Images retain their original grouping options
+- Switching modes automatically resets the active group to prevent stale field mismatches
 
 ## Supported Platforms
 * **Windows:** Windows 10/11 (.exe)
