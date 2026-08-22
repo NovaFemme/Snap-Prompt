@@ -50,15 +50,16 @@ Version 1.3.0 extends Google Drive sync beyond the prompt library, letting you p
 - Must **not** be named `snap-prompts.json`
 - Only one file can define a given field at a time
 
-**Example** — a custom file only needs to list the fields it wants to override:
+**Example** — a custom file can define multiple fields at once, but each field can only be covered by one ticked file:
 ```json
 // my-file.json
 {
-  "basemodels": ["green", "red", "etc"]
+  "basemodels": ["pear", "apple", "orange", "brown", "hill"],
+  "schedulers": ["pear", "apple", "red", "green"]
 }
 ```
 
-Any field defined this way will show the **●** indicator in the Custom Options editor to show it's coming from a Drive file.
+Any field defined this way will show the **●** indicator in the Custom Options editor to show it's coming from a Drive file. Remember: only one ticked file can define a given field at a time — if two ticked files both try to define `basemodels`, that's a conflict.
 
 ## Supported Platforms
 * **Windows:** Windows 10/11 (.exe)
