@@ -30,6 +30,18 @@ Version 1.2.0 introduces a dedicated **Song Lyrics** mode alongside the existing
 - Song cards display the **Genre badge**, **tag pills**, and a **prompt preview**
 - **Group By** is now mode-aware — Songs can be grouped by Genre, Key / Scale, Model, or Favourite; Images retain their original grouping options
 - Switching modes automatically resets the active group to prevent stale field mismatches
+  
+## 🆕 What's New in v1.3.0 — Custom Config Sync
+
+Version 1.3.0 extends Google Drive sync beyond the prompt library, letting you pull in and merge your own custom config files from Drive.
+
+### ⚙️ Custom Config Sync
+- **Google Drive sync** now supports **custom config files**, in addition to your prompt library
+- A new **Drive source file picker** lets you tick individual files to merge their fields into the app
+- **Custom Options editor** shows a **●** indicator next to any field that's currently covered by a synced Drive file
+- **Song editor** gains a new **Notes tab** for jotting down extra context alongside your lyrics workflow
+- **Floating profile bubble** window mode, extending the existing Floating Mini-Mode to profile management
+- Fixed a bug where **dragging didn't work while the program was minimized**
 
 ## Supported Platforms
 * **Windows:** Windows 10/11 (.exe)
