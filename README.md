@@ -37,11 +37,28 @@ Version 1.3.0 extends Google Drive sync beyond the prompt library, letting you p
 
 ### ⚙️ Custom Config Sync
 - **Google Drive sync** now supports **custom config files**, in addition to your prompt library
-- A new **Drive source file picker** lets you tick individual files to merge their fields into the app
-- **Custom Options editor** shows a **●** indicator next to any field that's currently covered by a synced Drive file
+- A new **Drive source file picker** lets you tick individual files to merge their fields into the app — **ticked files are editable**
+- Editing a field that isn't covered by a ticked file and saving it will **create a new `Custom_*filename*` file** to hold that change
+- **Custom Options editor** shows a **●** indicator next to any field that's currently covered by a ticked file
 - **Song editor** gains a new **Notes tab** for jotting down extra context alongside your lyrics workflow
 - **Floating profile bubble** window mode, extending the existing Floating Mini-Mode to profile management
 - Fixed a bug where **dragging didn't work while the program was minimized**
+
+**Custom file naming rules:**
+- Must follow the format `example-example.json` — the hyphen (`-`) is required
+- Must **not** be prefixed with `Custom_`
+- Must **not** be named `snap-prompts.json`
+- Only one file can define a given field at a time
+
+**Example** — a custom file only needs to list the fields it wants to override:
+```json
+// my-file.json
+{
+  "basemodels": ["green", "red", "etc"]
+}
+```
+
+Any field defined this way will show the **●** indicator in the Custom Options editor to show it's coming from a Drive file.
 
 ## Supported Platforms
 * **Windows:** Windows 10/11 (.exe)
