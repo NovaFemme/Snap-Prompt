@@ -20,16 +20,6 @@ Instead of relying on third-party servers, Snap Prompts uses your own Google Dri
 * ⚡ **Hot-Reloading:** Instant updates to your library.
 * 📥 Installation
 
-### Grab the latest installer for your operating system from the Releases Page.
-* [https://github.com/NovaFemme/Snap-Prompt/releases/tag/snap-prompt](https://github.com/NovaFemme/Snap-Prompt/releases)
-
-<img width="509" height="882" alt="snap_prompt (1)" src="https://github.com/user-attachments/assets/2da940e3-8c81-4bd4-bfb8-35a812674ec8" />
-
-<img width="453" height="842" alt="snap_prompt (2)" src="https://github.com/user-attachments/assets/3fe2c3c9-39a5-4f23-ad12-dfd9a9cb1592" />
-
-<img width="446" height="844" alt="snap_prompt (3)" src="https://github.com/user-attachments/assets/14cdc0cd-2919-4e5c-9ce2-a393a0316ec5" />
-
-<img width="477" height="841" alt="snap_prompt (4)" src="https://github.com/user-attachments/assets/56908ea5-9d9d-4082-9bff-6724e61d8c33" />
 
 ## 🆕 What's New in v1.2.0 — Song Lyrics Mode
 
@@ -111,6 +101,16 @@ Version 1.2.0 introduces a dedicated **Song Lyrics** mode alongside the existing
 
 * **Your data remains strictly between your local device and your Google Drive account.**
 
+### Grab the latest installer for your operating system from the Releases Page.
+* [https://github.com/NovaFemme/Snap-Prompt/releases/tag/snap-prompt](https://github.com/NovaFemme/Snap-Prompt/releases)
+
+<img width="509" height="882" alt="snap_prompt (1)" src="https://github.com/user-attachments/assets/2da940e3-8c81-4bd4-bfb8-35a812674ec8" />
+
+<img width="453" height="842" alt="snap_prompt (2)" src="https://github.com/user-attachments/assets/3fe2c3c9-39a5-4f23-ad12-dfd9a9cb1592" />
+
+<img width="446" height="844" alt="snap_prompt (3)" src="https://github.com/user-attachments/assets/14cdc0cd-2919-4e5c-9ce2-a393a0316ec5" />
+
+<img width="477" height="841" alt="snap_prompt (4)" src="https://github.com/user-attachments/assets/56908ea5-9d9d-4082-9bff-6724e61d8c33" />
 
 
 
