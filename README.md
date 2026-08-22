@@ -1,4 +1,3 @@
-<img width="771" height="418" alt="image" src="https://github.com/user-attachments/assets/e92a5dd2-4785-487b-abcf-7818cf11c9c6" /># Snap Prompts
 
 ## Sync your Stable Diffusion prompts across devices via Google Drive
 
