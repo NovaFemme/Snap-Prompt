@@ -61,6 +61,18 @@ Version 1.3.0 extends Google Drive sync beyond the prompt library, letting you p
 
 Any field defined this way will show the **●** indicator in the Custom Options editor to show it's coming from a Drive file. Remember: only one ticked file can define a given field at a time — if two ticked files both try to define `basemodels`, that's a conflict.
 
+-Default setting
+<img width="905" height="208" alt="image" src="https://github.com/user-attachments/assets/5ce8d875-c6b4-4af6-90f9-de00a3bd1aeb" />
+<img width="857" height="562" alt="image" src="https://github.com/user-attachments/assets/e93ab84c-e5cf-44b4-a53f-1c123a23e979" />
+<img width="742" height="526" alt="image" src="https://github.com/user-attachments/assets/f04ea75b-5b2d-4b81-be0d-5173214d6d8f" />
+<img width="733" height="440" alt="image" src="https://github.com/user-attachments/assets/c703a025-a087-473e-a3f5-a95f997949c2" />
+
+-With user defined files ticked
+<img width="823" height="403" alt="image" src="https://github.com/user-attachments/assets/2eada19b-60cd-435e-a105-23bb16dc8633" />
+<img width="857" height="562" alt="image" src="https://github.com/user-attachments/assets/fcb4fb32-8993-4b56-8ff7-faf22611652c" />
+<img width="857" height="562" alt="image" src="https://github.com/user-attachments/assets/de40ad1a-7e2d-42eb-8da9-a5438fd2a973" />
+
+
 ## Supported Platforms
 * **Windows:** Windows 10/11 (.exe)
 * **macOS: 10.13+ (.dmg)
