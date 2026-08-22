@@ -25,7 +25,8 @@ console.log(`Loaded Client ID: ${process.env.GOOGLE_CLIENT_ID ? 'YES' : 'NO'}`);
 
 const USER_DATA_PATH = app.getPath('userData');
 const DATA_FILE = path.join(USER_DATA_PATH, 'snap-prompts.json');
-const TOKEN_FILE = path.join(USER_DATA_PATH, 'auth-tokens.json'); 
+const TOKEN_FILE = path.join(USER_DATA_PATH, 'auth-tokens.json');
+const USER_CONFIGS_FILE = path.join(USER_DATA_PATH, 'user-configs.json');
 const REDIRECT_PORT = 5000;
 const REDIRECT_URI = `http://127.0.0.1:${REDIRECT_PORT}/callback`;
 
@@ -42,31 +43,44 @@ let driveFolderId = null;
 let mainWindow;
 
 
-// Remove 'async' keyword since we use readFileSync (synchronous)
+function parseItems(data) {
+  if (!Array.isArray(data)) return [];
+  return data.map(item => {
+    if (typeof item === 'string') return item;
+    return item.label || item.name || 'Unknown';
+  }).filter(Boolean);
+}
+
+function loadUserConfigs() {
+  if (!fs.existsSync(USER_CONFIGS_FILE)) return {};
+  return safeJSONParse(fs.readFileSync(USER_CONFIGS_FILE, 'utf-8'), {});
+}
+
+function saveUserConfigs(configs) {
+  fs.writeFileSync(USER_CONFIGS_FILE, JSON.stringify(configs, null, 2));
+}
+
 function loadJSON(filename) {
+  const key = filename.replace('.json', '');
+
+  // Load bundled defaults
+  let bundled = [];
   try {
     const filePath = path.join(__dirname, '..', 'src', 'items', filename);
-    
-    // Read and parse
-    const rawData = fs.readFileSync(filePath, 'utf-8');
-    const parsedData = JSON.parse(rawData);
-    
-    // Safety check
-    if (!Array.isArray(parsedData)) return [];
+    bundled = parseItems(safeJSONParse(fs.readFileSync(filePath, 'utf-8'), []));
+  } catch (err) {}
 
-    // SMART MAPPING: Works for both Strings and Objects
-    return parsedData.map(item => {
-      // 1. If it is already a string (e.g. "SDXL 1.0"), just return it
-      if (typeof item === 'string') return item;
-      
-      // 2. If it is an object, try to find 'label' or 'name'
-      return item.label || item.name || "Unknown"; 
-    }).filter(Boolean);
+  // Load user custom items for this key
+  const userConfigs = loadUserConfigs();
+  const userItems = Array.isArray(userConfigs[key]) ? userConfigs[key] : [];
 
-  } catch (err) {
-    // console.error(`Error loading ${filename}:`, err.message);
-    return []; // Return empty array on failure
+  // Merge: bundled first, then any user items not already present
+  const seen = new Set(bundled);
+  const merged = [...bundled];
+  for (const item of userItems) {
+    if (!seen.has(item)) merged.push(item);
   }
+  return merged;
 }
 
 // --- UTILS ---
@@ -99,8 +113,10 @@ function createWindow() {
     y: 100,
     frame: false,
     transparent: true,
-    resizable: false, // Locked as requested
+    backgroundColor: '#00000000',
+    resizable: false,
     alwaysOnTop: true,
+    hasShadow: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -113,6 +129,8 @@ function createWindow() {
     : `file://${path.join(__dirname, '../build/index.html')}`;
 
   mainWindow.loadURL(startUrl);
+
+  if (!app.isPackaged) mainWindow.webContents.openDevTools({ mode: 'detach' });
 
   // --- STARTUP CONFIG CHECK ---
   // If keys are missing, alert the user immediately so they don't wait for a login failure.
@@ -201,6 +219,63 @@ async function ensureDriveFolder() {
   return driveFolderId;
 }
 
+async function syncCustomConfigToDrive(key, items) {
+  if (!authTokens) return;
+  try {
+    const folderId = await ensureDriveFolder();
+    const label = key.charAt(0).toUpperCase() + key.slice(1);
+    const fileName = `Custom_${label}.json`;
+    const fileContent = JSON.stringify(items, null, 2);
+
+    const query = `name='${fileName}' and '${folderId}' in parents and trashed=false`;
+    const searchRes = await googleRequest(`${DRIVE_API_URL}/files?q=${encodeURIComponent(query)}&fields=files(id)`);
+
+    let fileId = null;
+    if (searchRes.files && searchRes.files.length > 0) fileId = searchRes.files[0].id;
+
+    const boundary = '-------314159265358979323846';
+    const metadata = { name: fileName, parents: fileId ? [] : [folderId] };
+    const body = `\r\n--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${fileContent}\r\n--${boundary}--`;
+
+    const uploadEndpoint = fileId
+      ? `${DRIVE_UPLOAD_URL}/files/${fileId}?uploadType=multipart`
+      : `${DRIVE_UPLOAD_URL}/files?uploadType=multipart`;
+
+    await googleRequest(uploadEndpoint, {
+      method: fileId ? 'PATCH' : 'POST',
+      headers: { 'Content-Type': `multipart/related; boundary="${boundary}"` },
+      body,
+    });
+    console.log(`Synced ${fileName} to Drive`);
+  } catch (err) {
+    console.error(`Drive sync failed for ${key}:`, err);
+  }
+}
+
+async function pullCustomConfigsFromDrive() {
+  if (!authTokens) return;
+  try {
+    const folderId = await ensureDriveFolder();
+    const query = `'${folderId}' in parents and name contains 'Custom_' and trashed=false`;
+    const searchRes = await googleRequest(`${DRIVE_API_URL}/files?q=${encodeURIComponent(query)}&fields=files(id,name)`);
+
+    if (!searchRes.files || searchRes.files.length === 0) return;
+
+    const configs = loadUserConfigs();
+    for (const file of searchRes.files) {
+      const match = file.name.match(/^Custom_(.+)\.json$/i);
+      if (!match) continue;
+      const key = match[1].toLowerCase();
+      const items = await googleRequest(`${DRIVE_API_URL}/files/${file.id}?alt=media`);
+      if (Array.isArray(items)) configs[key] = items;
+    }
+    saveUserConfigs(configs);
+    console.log('Custom configs pulled from Drive');
+  } catch (err) {
+    console.error('Pull custom configs failed:', err);
+  }
+}
+
 async function syncToDrive() {
   try {
     const folderId = await ensureDriveFolder();
@@ -250,7 +325,8 @@ ipcMain.handle('auth-login', async () => {
     try {
       const profile = await googleRequest('https://www.googleapis.com/oauth2/v2/userinfo');
       userProfile = profile;
-      syncToDrive(); 
+      await pullCustomConfigsFromDrive();
+      syncToDrive();
       return { name: profile.name, email: profile.email, picture: profile.picture };
     } catch (e) {
       console.log("Saved token invalid, re-authenticating...");
@@ -287,7 +363,8 @@ ipcMain.handle('auth-login', async () => {
           const profile = await googleRequest('https://www.googleapis.com/oauth2/v2/userinfo');
           userProfile = profile;
 
-          syncToDrive(); 
+          await pullCustomConfigsFromDrive();
+          syncToDrive();
           resolve({ name: profile.name, email: profile.email, picture: profile.picture });
 
         } catch (err) {
@@ -300,7 +377,7 @@ ipcMain.handle('auth-login', async () => {
       const authUrl = `${GOOGLE_AUTH_URL}?` + querystring.stringify({
         access_type: 'offline', 
         prompt: 'consent',      
-        scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive.file',
+        scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive',
         response_type: 'code',
         client_id: process.env.GOOGLE_CLIENT_ID,
         redirect_uri: REDIRECT_URI
@@ -346,16 +423,136 @@ ipcMain.handle('auth-logout', async () => {
     }
 });
 
+let bubbleWindow = null;
+
 ipcMain.on('resize-window', (e, isMin) => {
     if (!mainWindow) return;
     if (isMin) {
-        mainWindow.setSize(100, 100, true);
-        mainWindow.setResizable(false); // Ensure locked
+        const [x, y] = mainWindow.getPosition();
+        const picture = encodeURIComponent(userProfile?.picture || '');
+        const name = encodeURIComponent(userProfile?.name || '');
+        const base = (process.env.NODE_ENV === 'development' || !app.isPackaged)
+            ? 'http://localhost:3000'
+            : `file://${path.join(__dirname, '../build/index.html')}`;
+        const bubbleUrl = `${base}?mode=bubble&picture=${picture}&name=${name}`;
+
+        bubbleWindow = new BrowserWindow({
+            width: 96,
+            height: 96,
+            x: x + 400 - 96,
+            y,
+            frame: false,
+            transparent: true,
+            backgroundColor: '#00000000',
+            alwaysOnTop: true,
+            hasShadow: false,
+            resizable: false,
+            webPreferences: {
+                nodeIntegration: false,
+                contextIsolation: true,
+                preload: path.join(__dirname, 'preload.js'),
+            },
+        });
+
+        bubbleWindow.loadURL(bubbleUrl);
+        bubbleWindow.on('closed', () => { bubbleWindow = null; });
+        mainWindow.hide();
     } else {
-        mainWindow.setSize(400, 800, true);
-        mainWindow.setResizable(false); // Ensure locked
+        mainWindow.show();
+        mainWindow.focus();
     }
 });
+
+ipcMain.on('restore-window', () => {
+    if (bubbleWindow) { bubbleWindow.close(); bubbleWindow = null; }
+    if (mainWindow) { mainWindow.show(); mainWindow.focus(); }
+});
+
+ipcMain.on('move-window', (e, { dx, dy }) => {
+    const win = BrowserWindow.fromWebContents(e.sender);
+    if (!win) return;
+    const [x, y] = win.getPosition();
+    win.setPosition(x + Math.round(dx), y + Math.round(dy));
+});
+
+// --- USER CONFIG HANDLERS ---
+
+ipcMain.handle('get-user-config', async (e, key) => {
+  const userConfigs = loadUserConfigs();
+  return Array.isArray(userConfigs[key]) ? userConfigs[key] : [];
+});
+
+ipcMain.handle('save-user-config', async (e, { key, userItems }) => {
+  try {
+    const configs = loadUserConfigs();
+    configs[key] = userItems;
+    saveUserConfigs(configs);
+    syncCustomConfigToDrive(key, userItems); // fire-and-forget
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+// Returns all user configs (for Drive sync later)
+ipcMain.handle('get-all-user-configs', async () => loadUserConfigs());
+
+ipcMain.handle('list-drive-files', async () => {
+  if (!authTokens) return [];
+  try {
+    const folderId = await ensureDriveFolder();
+    const query = `'${folderId}' in parents and trashed=false`;
+    const searchRes = await googleRequest(
+      `${DRIVE_API_URL}/files?q=${encodeURIComponent(query)}&fields=files(id,name)&orderBy=name`
+    );
+    if (!searchRes.files) return [];
+    return searchRes.files.filter(f =>
+      f.name.endsWith('.json') &&
+      f.name !== 'snap-prompts.json' &&
+      !f.name.startsWith('Custom_')
+    );
+  } catch (err) {
+    console.error('List drive files failed:', err);
+    return [];
+  }
+});
+
+ipcMain.handle('load-drive-file', async (e, fileId) => {
+  if (!authTokens) return {};
+  try {
+    const content = await googleRequest(`${DRIVE_API_URL}/files/${fileId}?alt=media`);
+    if (content && typeof content === 'object') {
+      if (content.error) {
+        console.error('[Drive] load-drive-file API error:', JSON.stringify(content.error));
+        return {};
+      }
+      return content;
+    }
+    return {};
+  } catch (err) {
+    console.error('Load drive file failed:', err);
+    return {};
+  }
+});
+
+ipcMain.handle('save-drive-file', async (e, { fileId, prompts }) => {
+  if (!authTokens) return { success: false, error: 'Not authenticated' };
+  try {
+    const fileContent = JSON.stringify(prompts, null, 2);
+    const boundary = '-------314159265358979323846';
+    const body = `\r\n--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({})}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${fileContent}\r\n--${boundary}--`;
+    await googleRequest(`${DRIVE_UPLOAD_URL}/files/${fileId}?uploadType=multipart`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': `multipart/related; boundary="${boundary}"` },
+      body,
+    });
+    return { success: true };
+  } catch (err) {
+    console.error('Save drive file failed:', err);
+    return { success: false, error: err.message };
+  }
+});
+
 ipcMain.on('quit-app', () => app.quit());
 ipcMain.handle('list-prompts', async () => loadData().reverse());
 ipcMain.handle('delete-prompt', async (e, id) => {

@@ -2,13 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  background: transparent;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
-  background-color: transparent; /* Allows Electron transparency */
-  overflow: hidden; /* App handles its own scrolling */
+  background-color: transparent;
+  overflow: hidden;
 }
 
 /* Allows moving the frameless window */

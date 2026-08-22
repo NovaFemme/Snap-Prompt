@@ -1,13 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Save, Plus, AlertCircle, Check, Loader2, X, 
-  Trash2, Calendar, ArrowLeft, Maximize2,
-  Sliders, FileText, Ban, Upload, Lock, MessageSquare, LogOut, 
-  Heart, Copy, Clipboard, Music, Tag, Mic2
-} from 'lucide-react';
+import React, { useState, useEffect, useReducer } from "react";
+
+import {
+  Save,
+  Plus,
+  AlertCircle,
+  Check,
+  Loader2,
+  X,
+  Trash2,
+  Calendar,
+  ArrowLeft,
+  Maximize2,
+  Sliders,
+  FileText,
+  Ban,
+  Upload,
+  Lock,
+  MessageSquare,
+  LogOut,
+  Heart,
+  Copy,
+  Clipboard,
+  Music,
+  Tag,
+  Mic2,
+} from "lucide-react";
 
 // --- IMAGE HANDLING INSTRUCTIONS ---
-import appIcon from './icon.png' 
+import appIcon from "./icon.png";
 // ---------------------------------------------------------------------------
 // FOR PREVIEW (Current Mode):
 //const appIcon = "https://drive.google.com/uc?export=view&id=1BdkKCJld4j4TeU1mUf_RhQShZPiRA_ps";
@@ -15,14 +35,20 @@ import appIcon from './icon.png'
 
 // --- MOCK ELECTRON BRIDGE (For Browser Preview) ---
 if (!window.electron) {
-  const LOCAL_STORAGE_KEY = 'snap-prompts-mock-data';
-  console.warn("Electron API not found. Using Mock Bridge for browser preview.");
-  
+  const LOCAL_STORAGE_KEY = "snap-prompts-mock-data";
+  console.warn(
+    "Electron API not found. Using Mock Bridge for browser preview.",
+  );
+
   window.electron = {
-    checkAuth: async () => null, 
+    checkAuth: async () => null,
     loginGoogle: async () => {
       console.log("Mock Login Triggered");
-      return { name: "Preview User", email: "user@example.com", picture: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" };
+      return {
+        name: "Preview User",
+        email: "user@example.com",
+        picture: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
+      };
     },
     logout: async () => {
       console.log("Mock Logout Triggered");
@@ -30,12 +56,13 @@ if (!window.electron) {
     },
     saveData: async (data) => {
       try {
-        await new Promise(r => setTimeout(r, 600)); 
-        let items = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '[]');
-        if (!data.title || !data.title.trim()) return { success: false, error: "Title is required (Backend Mock)" };
+        await new Promise((r) => setTimeout(r, 600));
+        let items = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || "[]");
+        if (!data.title || !data.title.trim())
+          return { success: false, error: "Title is required (Backend Mock)" };
 
         if (data.id) {
-          const idx = items.findIndex(i => i.id === data.id);
+          const idx = items.findIndex((i) => i.id === data.id);
           if (idx !== -1) items[idx] = data;
           else items.push(data);
         } else {
@@ -49,76 +76,375 @@ if (!window.electron) {
       }
     },
     listPrompts: async () => {
-       const items = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '[]');
-       return items.reverse();
+      const items = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || "[]");
+      return items.reverse();
     },
     deletePrompt: async (id) => {
-      let items = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '[]');
-      items = items.filter(i => i.id !== id);
+      let items = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || "[]");
+      items = items.filter((i) => i.id !== id);
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(items));
       return { success: true };
     },
     getConfigs: async () => {
-      return { 
-          basemodels: ["SDXL_1.0", "SD 1.5"], 
-          samplers: ["DPM++ 2M Karras", "Euler a"], 
-          categories: ["Character", "Landscape"], 
-          modeltypes: ["Checkpoint", "LoRA"], 
-          checkpointtypes: ["Merged", "Trained"], 
-          modelfileformats: ["Safe Tensor", "ckpt"], 
-          modelresolutions: ["1024x1024", "512x512"],
-          lyric_genres: ["Pop", "Hip-Hop", "R&B", "Rock", "Electronic", "House", "Techno", "Ambient", "Lo-Fi", "Jazz", "Blues", "Country", "Folk", "Classical", "Metal", "Reggae", "Soul", "Funk", "Trap", "Deep Tech House", "Middle Eastern", "World", "Latin", "Afrobeats", "Drum & Bass", "Dubstep"],
-          lyric_languages: ["English", "Spanish", "French", "German", "Japanese", "Korean", "Arabic"],
-          lyric_keyscales: ["C Major", "C Minor", "D Major", "D Minor", "E Major", "A Minor", "G Major"],
-          lyric_diffusionmodels: ["stable-audio-open-1.0", "audioldm2-music", "musicldm-base"],
-          lyric_diffusionmodelweightdtypes: ["fp32", "fp16", "bf16", "int8"],
-          lyric_cliploaders: ["clip_l", "clip_g", "t5xxl"],
-          lyric_cliploadertypes: ["sdxl", "sd3", "flux", "stable_audio"],
-          lyric_samplernames: ["euler", "dpmpp_2m", "dpmpp_3m_sde", "ddim"],
-          lyric_samplerschedulers: ["normal", "karras", "exponential", "simple"]
+      return {
+        basemodels: ["SDXL_1.0", "SD 1.5"],
+        samplers: ["DPM++ 2M Karras", "Euler a"],
+        categories: ["Character", "Landscape"],
+        modeltypes: ["Checkpoint", "LoRA"],
+        checkpointtypes: ["Merged", "Trained"],
+        modelfileformats: ["Safe Tensor", "ckpt"],
+        modelresolutions: ["1024x1024", "512x512"],
+        lyric_genres: [
+          "Pop",
+          "Hip-Hop",
+          "R&B",
+          "Rock",
+          "Electronic",
+          "House",
+          "Techno",
+          "Ambient",
+          "Lo-Fi",
+          "Jazz",
+          "Blues",
+          "Country",
+          "Folk",
+          "Classical",
+          "Metal",
+          "Reggae",
+          "Soul",
+          "Funk",
+          "Trap",
+          "Deep Tech House",
+          "Middle Eastern",
+          "World",
+          "Latin",
+          "Afrobeats",
+          "Drum & Bass",
+          "Dubstep",
+        ],
+        lyric_languages: [
+          "English",
+          "Spanish",
+          "French",
+          "German",
+          "Japanese",
+          "Korean",
+          "Arabic",
+        ],
+        lyric_keyscales: [
+          "C Major",
+          "C Minor",
+          "D Major",
+          "D Minor",
+          "E Major",
+          "A Minor",
+          "G Major",
+        ],
+        lyric_diffusionmodels: [
+          "stable-audio-open-1.0",
+          "audioldm2-music",
+          "musicldm-base",
+        ],
+        lyric_diffusionmodelweightdtypes: ["fp32", "fp16", "bf16", "int8"],
+        lyric_cliploaders: ["clip_l", "clip_g", "t5xxl"],
+        lyric_cliploadertypes: ["sdxl", "sd3", "flux", "stable_audio"],
+        lyric_samplernames: ["euler", "dpmpp_2m", "dpmpp_3m_sde", "ddim"],
+        lyric_samplerschedulers: ["normal", "karras", "exponential", "simple"],
       };
     },
-    resizeWindow: (min) => console.log(`Window resize requested. Mini mode: ${min}`),
+    resizeWindow: (min) =>
+      console.log(`Window resize requested. Mini mode: ${min}`),
+    restoreWindow: () => console.log("Restore window requested"),
+    moveWindow: (dx, dy) => console.log(`Move window: ${dx}, ${dy}`),
     setResizable: (allow) => console.log(`Window resizable set to: ${allow}`),
-    quitApp: () => console.log("App quit requested")
+    quitApp: () => console.log("App quit requested"),
+    getUserConfig: async () => [],
+    saveUserConfig: async (key, items) => {
+      console.log("Mock saveUserConfig", key, items);
+      return { success: true };
+    },
+    getAllUserConfigs: async () => ({}),
+    listDriveFiles: async () => [],
+    loadDriveFile: async () => ({}),
+    saveDriveFile: async () => ({ success: true }),
   };
 }
+
+// Detect if this window is the floating bubble
+const _params = new URLSearchParams(window.location.search);
+const IS_BUBBLE = _params.get('mode') === 'bubble';
+const BUBBLE_PICTURE = _params.get('picture') || '';
+const BUBBLE_NAME = _params.get('name') || '';
+
+// --- FLOATING PROFILE COMPONENT ---
+const FloatingProfile = ({ picture, name }) => {
+  const handleMouseDown = (e) => {
+    if (e.button !== 0) return;
+    let lastX = e.screenX;
+    let lastY = e.screenY;
+    let dragged = false;
+
+    const onMouseMove = (mv) => {
+      const dx = mv.screenX - lastX;
+      const dy = mv.screenY - lastY;
+      if (Math.abs(dx) > 0 || Math.abs(dy) > 0) dragged = true;
+      lastX = mv.screenX;
+      lastY = mv.screenY;
+      window.electron?.moveWindow(dx, dy);
+    };
+
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      if (!dragged) window.electron?.restoreWindow();
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
+
+  return (
+    <div className="w-full h-full bg-transparent" onMouseDown={handleMouseDown}>
+      <div className="w-24 h-24 rounded-full overflow-hidden border border-white/20 bg-[#121212] relative group flex items-center justify-center select-none cursor-pointer">
+        <img src={picture} alt={name} className="w-full h-full object-cover pointer-events-none" />
+        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+          <Maximize2 size={24} className="text-white drop-shadow-md" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- CONFIG EDITOR ---
+const EDITOR_KEYS = [
+  'basemodels', 'samplers', 'schedulers', 'categories', 'checkpointtypes',
+  'modelfileformats', 'modeltypes', 'modelresolutions',
+  'lyric_genres', 'lyric_languages', 'lyric_keyscales', 'lyric_diffusionmodels',
+  'lyric_diffusionmodelweightdtypes', 'lyric_cliploaders', 'lyric_cliploadertypes',
+  'lyric_samplernames', 'lyric_samplerschedulers',
+];
+
+const editorInitial = {
+  open: false,
+  selectedKey: 'basemodels',
+  userItems: [],
+  inputValue: '',
+  saving: false,
+  loading: false,
+};
+
+function editorReducer(state, action) {
+  switch (action.type) {
+    case 'TOGGLE': return { ...state, open: !state.open };
+    case 'SET_KEY': return { ...state, selectedKey: action.key };
+    case 'LOADING': return { ...state, loading: true, userItems: [], inputValue: '' };
+    case 'LOADED': return { ...state, loading: false, userItems: action.items };
+    case 'INPUT': return { ...state, inputValue: action.value };
+    case 'ADD': {
+      const v = state.inputValue.trim();
+      if (!v || state.userItems.includes(v)) return { ...state, inputValue: '' };
+      return { ...state, userItems: [...state.userItems, v], inputValue: '' };
+    }
+    case 'REMOVE': return { ...state, userItems: state.userItems.filter((_, i) => i !== action.index) };
+    case 'SAVING': return { ...state, saving: true };
+    case 'SAVED': return { ...state, saving: false };
+    default: return state;
+  }
+}
+
+const ConfigEditor = ({ configs, driveFiles, driveKeyMap, onConfigSaved }) => {
+  const [state, dispatch] = useReducer(editorReducer, editorInitial);
+
+  const activeDriveFileId = driveKeyMap[state.selectedKey] || null;
+  const activeDriveFile = activeDriveFileId ? driveFiles.find((f) => f.id === activeDriveFileId) : null;
+  const driveFileName = activeDriveFile ? activeDriveFile.name.replace(/\.json$/i, '') : null;
+
+  useEffect(() => {
+    if (!state.open) return;
+    let cancelled = false;
+    dispatch({ type: 'LOADING' });
+    if (activeDriveFileId) {
+      window.electron?.loadDriveFile(activeDriveFileId).then((content) => {
+        if (!cancelled) {
+          const items = (content && typeof content === 'object' && !Array.isArray(content))
+            ? (content[state.selectedKey] || [])
+            : [];
+          dispatch({ type: 'LOADED', items });
+        }
+      });
+    } else {
+      window.electron?.getUserConfig(state.selectedKey).then((items) => {
+        if (!cancelled) dispatch({ type: 'LOADED', items: Array.isArray(items) ? items : [] });
+      });
+    }
+    return () => { cancelled = true; };
+  }, [state.open, state.selectedKey, activeDriveFileId]);
+
+  const userSet = new Set(state.userItems);
+  const bundledItems = (configs[state.selectedKey] || []).filter(item => !userSet.has(item));
+
+  const handleSave = async () => {
+    dispatch({ type: 'SAVING' });
+    if (activeDriveFileId) {
+      const current = await window.electron?.loadDriveFile(activeDriveFileId);
+      const base = (current && typeof current === 'object' && !Array.isArray(current)) ? current : {};
+      await window.electron?.saveDriveFile({ fileId: activeDriveFileId, prompts: { ...base, [state.selectedKey]: state.userItems } });
+    } else {
+      await window.electron?.saveUserConfig(state.selectedKey, state.userItems);
+    }
+    dispatch({ type: 'SAVED' });
+    onConfigSaved?.();
+  };
+
+  return (
+    <div className="border-t border-[#333] bg-[#1a1a1a] flex-shrink-0">
+      <button
+        onClick={() => dispatch({ type: 'TOGGLE' })}
+        className="w-full flex items-center justify-between px-3 py-2 text-xs font-bold text-gray-500 hover:text-gray-300 hover:bg-[#222] transition"
+      >
+        <span className="flex items-center gap-1.5"><Sliders size={12} /> Custom Options</span>
+        <span className="text-[10px]">{state.open ? '▼' : '▶'}</span>
+      </button>
+
+      {state.open && (
+        <div className="px-3 pb-3 space-y-2">
+          <select
+            value={state.selectedKey}
+            onChange={e => dispatch({ type: 'SET_KEY', key: e.target.value })}
+            className="w-full bg-[#111] border border-[#333] text-gray-300 text-xs rounded px-2 py-1.5 outline-none focus:border-blue-500"
+          >
+            {EDITOR_KEYS.map(k => <option key={k} value={k}>{driveKeyMap[k] ? `● ${k}` : k}</option>)}
+          </select>
+
+          {driveFileName && (
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-900/20 border border-blue-900/30 rounded text-[10px] text-blue-400">
+              <FileText size={10} />
+              <span className="truncate">Editing: {driveFileName}</span>
+            </div>
+          )}
+
+          {state.loading ? (
+            <div className="flex items-center justify-center gap-2 py-3 text-xs text-gray-600">
+              <Loader2 size={12} className="animate-spin" /> Loading...
+            </div>
+          ) : (
+            <div className="max-h-32 overflow-y-auto space-y-1 pr-0.5">
+              {!driveFileName && bundledItems.map(item => (
+                <div key={item} className="flex items-center justify-between px-2 py-1 bg-[#111] rounded text-xs text-gray-500">
+                  <span className="truncate">{item}</span>
+                  <span className="ml-2 flex-shrink-0 text-[9px] text-gray-700 border border-[#2a2a2a] rounded px-1">default</span>
+                </div>
+              ))}
+              {state.userItems.map((item, i) => (
+                <div key={i} className="flex items-center justify-between px-2 py-1 bg-green-900/20 border border-green-900/30 rounded text-xs text-green-300">
+                  <span className="truncate">{item}</span>
+                  <button
+                    onClick={() => dispatch({ type: 'REMOVE', index: i })}
+                    className="ml-2 flex-shrink-0 text-red-500 hover:text-red-400 p-0.5 rounded transition"
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+              ))}
+              {(driveFileName ? state.userItems.length === 0 : bundledItems.length === 0 && state.userItems.length === 0) && (
+                <p className="text-[10px] text-gray-700 text-center py-1">No items yet</p>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-1.5">
+            <input
+              value={state.inputValue}
+              onChange={e => dispatch({ type: 'INPUT', value: e.target.value })}
+              onKeyDown={e => e.key === 'Enter' && dispatch({ type: 'ADD' })}
+              placeholder={driveFileName ? `Add to ${driveFileName}...` : 'Add custom item...'}
+              className="flex-1 bg-[#111] border border-[#333] text-gray-300 text-xs rounded px-2 py-1.5 outline-none focus:border-blue-500 placeholder-gray-600"
+            />
+            <button
+              onClick={() => dispatch({ type: 'ADD' })}
+              className="px-2 py-1.5 bg-blue-700 hover:bg-blue-600 text-white rounded text-xs font-bold transition"
+            >
+              <Plus size={12} />
+            </button>
+          </div>
+
+          <button
+            onClick={handleSave}
+            disabled={state.saving}
+            className="w-full py-1.5 bg-[#222] hover:bg-[#2a2a2a] border border-[#333] text-gray-400 hover:text-gray-200 text-xs font-bold rounded transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+          >
+            {state.saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+            {state.saving ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // --- LOGIN SCREEN COMPONENT ---
 const LoginScreen = ({ onLogin }) => (
   <div className="flex flex-col h-full bg-[#121212] relative animate-in fade-in duration-500">
     <div className="absolute top-0 w-full h-12 flex items-center justify-end px-4 z-20 drag-handle">
-       <div className="flex gap-2 no-drag">
-          <button onClick={() => window.electron.quitApp()} className="p-1 hover:bg-red-900/50 hover:text-red-400 rounded text-gray-400 transition"><X size={16} /></button>
-       </div>
+      <div className="flex gap-2 no-drag">
+        <button
+          onClick={() => window.electron.quitApp()}
+          className="p-1 hover:bg-red-900/50 hover:text-red-400 rounded text-gray-400 transition"
+        >
+          <X size={16} />
+        </button>
+      </div>
     </div>
 
     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-8">
       <div className="relative group">
         <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
         <div className="relative w-24 h-24 bg-[#1e1e1e] rounded-xl flex items-center justify-center shadow-2xl border border-[#333] overflow-hidden">
-          <img src={appIcon} alt="Snap Prompt Icon" className="w-full h-full object-cover" />
+          <img
+            src={appIcon}
+            alt="Snap Prompt Icon"
+            className="w-full h-full object-cover"
+          />
         </div>
       </div>
-      
+
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight text-white">Snap Prompt</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-white">
+          Snap Prompt
+        </h1>
         <p className="text-gray-500 text-sm max-w-[240px] mx-auto leading-relaxed">
-          Sync your Stable Diffusion prompts across all your devices with Google Drive.
+          Sync your Stable Diffusion prompts across all your devices with Google
+          Drive.
         </p>
       </div>
-      
-      <button 
+
+      <button
         onClick={onLogin}
         className="group relative flex items-center gap-3 bg-white text-gray-900 px-6 py-3.5 rounded-xl font-bold hover:bg-gray-100 transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] hover:-translate-y-0.5"
       >
         <div className="w-5 h-5 flex items-center justify-center">
-           <svg viewBox="0 0 24 24" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-           </svg>
+          <svg
+            viewBox="0 0 24 24"
+            className="w-full h-full"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+              fill="#4285F4"
+            />
+            <path
+              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+              fill="#34A853"
+            />
+            <path
+              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+              fill="#FBBC05"
+            />
+            <path
+              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+              fill="#EA4335"
+            />
+          </svg>
         </div>
         Sign in with Google
       </button>
@@ -132,7 +458,15 @@ const LoginScreen = ({ onLogin }) => (
 );
 
 // --- CUSTOM MODAL ---
-const Modal = ({ isOpen, title, message, onConfirm, onCancel, confirmText = "Confirm", isDestructive = false }) => {
+const Modal = ({
+  isOpen,
+  title,
+  message,
+  onConfirm,
+  onCancel,
+  confirmText = "Confirm",
+  isDestructive = false,
+}) => {
   if (!isOpen) return null;
   return (
     <div className="absolute inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -141,8 +475,18 @@ const Modal = ({ isOpen, title, message, onConfirm, onCancel, confirmText = "Con
           <h3 className="text-lg font-bold text-gray-100 mb-2">{title}</h3>
           <p className="text-sm text-gray-400 mb-6">{message}</p>
           <div className="flex gap-3">
-            <button onClick={onCancel} className="flex-1 py-2 bg-[#333] hover:bg-[#444] text-gray-200 rounded-lg text-sm font-bold transition">Cancel</button>
-            <button onClick={onConfirm} className={`flex-1 py-2 rounded-lg text-sm font-bold text-white transition ${isDestructive ? 'bg-red-600 hover:bg-red-500' : 'bg-blue-600 hover:bg-blue-500'}`}>{confirmText}</button>
+            <button
+              onClick={onCancel}
+              className="flex-1 py-2 bg-[#333] hover:bg-[#444] text-gray-200 rounded-lg text-sm font-bold transition"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className={`flex-1 py-2 rounded-lg text-sm font-bold text-white transition ${isDestructive ? "bg-red-600 hover:bg-red-500" : "bg-blue-600 hover:bg-blue-500"}`}
+            >
+              {confirmText}
+            </button>
           </div>
         </div>
       </div>
@@ -152,49 +496,72 @@ const Modal = ({ isOpen, title, message, onConfirm, onCancel, confirmText = "Con
 
 const App = () => {
   // --- STATE DEFINITIONS ---
-  const [activeTab, setActiveTab] = useState('history'); 
-  const [editorView, setEditorView] = useState('prompt');
-  
+  const [activeTab, setActiveTab] = useState("history");
+  const [editorView, setEditorView] = useState("prompt");
+
   const [user, setUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [isFloating, setIsFloating] = useState(false); // Tracks Floating Bubble Mode
+  const [isFloating, setIsFloating] = useState(false);
 
   const [history, setHistory] = useState([]);
-  const [configs, setConfigs] = useState({ basemodels: [], samplers: [], categories: [], checkpointtypes: [], modelfileformats: [], modeltypes: [], schedulers: [] , modelresolutions: []});
+  const [configs, setConfigs] = useState({
+    basemodels: [],
+    samplers: [],
+    categories: [],
+    checkpointtypes: [],
+    modelfileformats: [],
+    modeltypes: [],
+    schedulers: [],
+    modelresolutions: [],
+  });
   const [isSaving, setIsSaving] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState("");
 
   const [previewImage, setPreviewImage] = useState(null);
-  const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', onConfirm: () => {}, isDestructive: false, confirmText: 'Confirm' });
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    isDestructive: false,
+    confirmText: "Confirm",
+  });
 
   // Grouping State
-  const [groupBy, setGroupBy] = useState('none');
-  
+  const [groupBy, setGroupBy] = useState("none");
+
+  // Drive Config Sources
+  const [driveFiles, setDriveFiles] = useState([]);
+  const [checkedDriveIds, setCheckedDriveIds] = useState(new Set());
+  const [driveKeyMap, setDriveKeyMap] = useState({});
+  const [sourceOpen, setSourceOpen] = useState(false);
+  const [isDriveLoading, setIsDriveLoading] = useState(false);
+
   // Library Mode: 'image' or 'song'
-  const [libraryMode, setLibraryMode] = useState('image');
-  const [songEditorView, setSongEditorView] = useState('content');
+  const [libraryMode, setLibraryMode] = useState("image");
+  const [songEditorView, setSongEditorView] = useState("content");
 
   const [formData, setFormData] = useState({
     id: null,
     title: "",
     favourite: false,
     image: "",
-    positive: "", 
-    negative: "", 
+    positive: "",
+    negative: "",
     stylePrompt: "",
     refinerPrompt: "",
     width: 0,
     height: 0,
     modelresolution: "",
     steps: 30,
-    cfgScale: 7.0, 
+    cfgScale: 7.0,
     seed: -1,
     sampler: "DPM++ 2M Karras",
     scheduler: "Simple",
     basemodel: "SDXL_1.0.safetensors",
     checkpointtype: "Merged",
     modelfileformat: "Safe Tensor",
-    modeltype:"Checkpoint",
+    modeltype: "Checkpoint",
     vae: "Automatic",
     clipSkip: 2,
     denoise: 0.7,
@@ -207,12 +574,12 @@ const App = () => {
     subCategory: "",
     comment: "",
     modelUrl: "",
-    promptDate: new Date().toISOString().split('T')[0]
+    promptDate: new Date().toISOString().split("T")[0],
   });
 
   const defaultSongForm = {
     id: null,
-    type: 'song',
+    type: "song",
     title: "",
     favourite: false,
     // Tab 01
@@ -245,27 +612,29 @@ const App = () => {
     samplerName: "",
     samplerScheduler: "",
     samplerDenoise: 1.0,
-    promptDate: new Date().toISOString().split('T')[0]
+    comment: "",
+    promptDate: new Date().toISOString().split("T")[0],
   };
 
   const [songFormData, setSongFormData] = useState(defaultSongForm);
 
   // --- HELPER: Group Prompts ---
   const getGroupedPrompts = () => {
-    const filtered = libraryMode === 'song'
-      ? history.filter(p => p.type === 'song')
-      : history.filter(p => p.type !== 'song');
+    const filtered =
+      libraryMode === "song"
+        ? history.filter((p) => p.type === "song")
+        : history.filter((p) => p.type !== "song");
 
-    if (groupBy === 'none') return { "All Prompts": filtered };
+    if (groupBy === "none") return { "All Prompts": filtered };
 
     return filtered.reduce((groups, prompt) => {
       let key = prompt[groupBy];
-      if (groupBy === 'promptDate') {
-        key = key ? new Date(key).toLocaleDateString() : 'No Date';
-      } else if (groupBy === 'favourite') {
-        key = key ? '❤️ Favourites' : 'Standard';
-      } else if (!key || key === '') {
-        key = 'Uncategorized';
+      if (groupBy === "promptDate") {
+        key = key ? new Date(key).toLocaleDateString() : "No Date";
+      } else if (groupBy === "favourite") {
+        key = key ? "❤️ Favourites" : "Standard";
+      } else if (!key || key === "") {
+        key = "Uncategorized";
       }
       if (!groups[key]) groups[key] = [];
       groups[key].push(prompt);
@@ -283,7 +652,7 @@ const App = () => {
   const handlePaste = async (field) => {
     try {
       const text = await navigator.clipboard.readText();
-      if (text) setFormData(prev => ({ ...prev, [field]: text }));
+      if (text) setFormData((prev) => ({ ...prev, [field]: text }));
     } catch (err) {
       console.error("Paste failed", err);
     }
@@ -292,54 +661,121 @@ const App = () => {
   // --- EFFECTS ---
   useEffect(() => {
     if (window.electron) {
-        if (window.electron.setResizable) {
-            window.electron.setResizable(false);
-        }
+      if (window.electron.setResizable) {
+        window.electron.setResizable(false);
+      }
 
-        window.electron.checkAuth().then(u => { 
-            if (u) {
-                setUser(u);
-                loadHistory(); 
-            }
-            setIsAuthLoading(false); 
-        });
-        window.electron.getConfigs().then(setConfigs);
-    } else {
+      window.electron.checkAuth().then((u) => {
+        if (u) {
+          setUser(u);
+          loadHistory();
+          loadDriveFiles();
+        }
         setIsAuthLoading(false);
+      });
+      window.electron.getConfigs().then(setConfigs);
+    } else {
+      setIsAuthLoading(false);
     }
   }, []);
 
   const loadHistory = async () => {
     if (window.electron) {
-        const data = await window.electron.listPrompts();
-        setHistory(data);
+      const data = await window.electron.listPrompts();
+      setHistory(data);
     }
   };
 
-  const showModal = (title, message, onConfirm, isDestructive = false, confirmText = 'Confirm') => {
-    setModalConfig({ isOpen: true, title, message, onConfirm: () => { onConfirm(); setModalConfig(prev => ({...prev, isOpen: false})); }, isDestructive, confirmText });
+  const reloadConfigs = () => {
+    if (checkedDriveIds.size > 0) {
+      applyDriveConfigs(checkedDriveIds);
+    } else {
+      window.electron?.getConfigs().then(setConfigs);
+    }
   };
-  const closeModal = () => setModalConfig(prev => ({...prev, isOpen: false}));
 
-  const handleLogin = async () => { 
-      if (window.electron) { 
-          try {
-            const u = await window.electron.loginGoogle(); 
-            if (u) {
-                setUser(u);
-                loadHistory(); 
-            }
-          } catch (err) {
-            console.error("Login failed:", err);
-            showModal(
-                "Login Error", 
-                `Failed to sign in: ${err.message || "Unknown error"}. Ensure your .env file is correctly set up with Google Credentials.`, 
-                () => {}, 
-                false, 
-                "OK"
-            );
-          }
-      } 
+  const loadDriveFiles = async () => {
+    const files = await window.electron?.listDriveFiles();
+    setDriveFiles(Array.isArray(files) ? files : []);
+  };
+
+  const applyDriveConfigs = async (checkedIds) => {
+    setIsDriveLoading(true);
+    const base = await window.electron?.getConfigs();
+    let merged = { ...base };
+    const keyMap = {};
+    for (const fileId of checkedIds) {
+      const content = await window.electron?.loadDriveFile(fileId);
+      if (!content || typeof content !== 'object' || Array.isArray(content)) continue;
+      for (const [key, items] of Object.entries(content)) {
+        if (!Array.isArray(items) || !(key in merged)) continue;
+        merged[key] = [...new Set([...items, ...merged[key]])];
+        keyMap[key] = fileId;
+      }
+    }
+    setConfigs(merged);
+    setDriveKeyMap(keyMap);
+    setIsDriveLoading(false);
+  };
+
+  const toggleDriveFile = async (fileId) => {
+    const next = new Set(checkedDriveIds);
+    if (next.has(fileId)) next.delete(fileId);
+    else next.add(fileId);
+    setCheckedDriveIds(next);
+    await applyDriveConfigs(next);
+  };
+
+  const handleDefaultClick = async () => {
+    setCheckedDriveIds(new Set());
+    setDriveKeyMap({});
+    const base = await window.electron?.getConfigs();
+    if (base) setConfigs(base);
+  };
+
+  const showModal = (
+    title,
+    message,
+    onConfirm,
+    isDestructive = false,
+    confirmText = "Confirm",
+  ) => {
+    setModalConfig({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => {
+        onConfirm();
+        setModalConfig((prev) => ({ ...prev, isOpen: false }));
+      },
+      isDestructive,
+      confirmText,
+    });
+  };
+  const closeModal = () =>
+    setModalConfig((prev) => ({ ...prev, isOpen: false }));
+
+  const handleLogin = async () => {
+    if (window.electron) {
+      try {
+        const u = await window.electron.loginGoogle();
+        if (u) {
+          setUser(u);
+          loadHistory();
+          reloadConfigs();
+          loadDriveFiles();
+        }
+      } catch (err) {
+        console.error("Login failed:", err);
+        showModal(
+          "Login Error",
+          `Failed to sign in: ${err.message || "Unknown error"}. Ensure your .env file is correctly set up with Google Credentials.`,
+          () => {},
+          false,
+          "OK",
+        );
+      }
+    }
   };
 
   const handleLogout = async () => {
@@ -350,29 +786,31 @@ const App = () => {
     }
   };
 
-  const toggleFloating = () => {
-    const newState = !isFloating;
-    setIsFloating(newState);
-    if (window.electron) {
-      window.electron.resizeWindow(newState);
-    }
+  const handleMinimize = () => {
+    window.electron?.resizeWindow(true);
   };
 
   const handleTitleChange = (e) => {
-    setErrorMsg(''); 
-    setFormData(prev => ({...prev, title: e.target.value}));
+    setErrorMsg("");
+    setFormData((prev) => ({ ...prev, title: e.target.value }));
   };
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 1024 * 1024) { 
-        showModal("File Too Large", "Please upload an image smaller than 1MB.", () => {}, false, "OK");
-        return;
+    if (file.size > 1024 * 1024) {
+      showModal(
+        "File Too Large",
+        "Please upload an image smaller than 1MB.",
+        () => {},
+        false,
+        "OK",
+      );
+      return;
     }
     const reader = new FileReader();
     reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, image: reader.result }));
+      setFormData((prev) => ({ ...prev, image: reader.result }));
     };
     reader.readAsDataURL(file);
   };
@@ -383,7 +821,7 @@ const App = () => {
       return false;
     }
     setIsSaving(true);
-    setErrorMsg('');
+    setErrorMsg("");
     try {
       const result = await window.electron.saveData(formData);
       if (!result.success) {
@@ -391,8 +829,9 @@ const App = () => {
         setIsSaving(false);
         return false;
       }
-      setFormData(prev => ({ ...prev, id: result.id }));
-      if (!silent) setTimeout(() => setIsSaving(false), 1000); else setIsSaving(false);
+      setFormData((prev) => ({ ...prev, id: result.id }));
+      if (!silent) setTimeout(() => setIsSaving(false), 1000);
+      else setIsSaving(false);
       await loadHistory();
       return true;
     } catch (err) {
@@ -401,38 +840,100 @@ const App = () => {
       setIsSaving(false);
       return false;
     }
-  }
+  };
 
   const handleBackOrCancel = async () => {
     if (!formData.id) {
-        showModal("Discard Prompt?", "You haven't saved this prompt yet. Discard?", () => setActiveTab('history'), true, "Discard");
-        return;
+      showModal(
+        "Discard Prompt?",
+        "You haven't saved this prompt yet. Discard?",
+        () => setActiveTab("history"),
+        true,
+        "Discard",
+      );
+      return;
     }
     const saved = await handleSave(true);
-    if (saved) setActiveTab('history');
+    if (saved) setActiveTab("history");
   };
 
   const handleAddNew = () => {
-    if (libraryMode === 'song') {
+    if (libraryMode === "song") {
       setSongFormData({ ...defaultSongForm });
-      setErrorMsg(''); setIsSaving(false); setSongEditorView('content'); setActiveTab('song-editor');
+      setErrorMsg("");
+      setIsSaving(false);
+      setSongEditorView("content");
+      setActiveTab("song-editor");
     } else {
-      setFormData({ id: null, title: "", favourite: false, image: "", positive: "", negative: "", stylePrompt: "", refinerPrompt: "", width: 1024, height: 1024, steps: 30, cfgScale: 7.0, seed: -1, sampler: "DPM++ 2M Karras", scheduler: "Simple", basemodel: "SDXL_1.0.safetensors", checkpointtype: "Merged", modelfileformat: "Safe Tensor", modeltype:"Checkpoint", vae: "Automatic", clipSkip: 2, denoise: 0.7, addNoise: true, startStep: 0, endStep: 100, processType: "Text to Image", usedPromptType: "SDXL", category: "Character Design", subCategory: "", comment: "", modelUrl: "", promptDate: new Date().toISOString().split('T')[0] });
-      setErrorMsg(''); setIsSaving(false); setEditorView('prompt'); setActiveTab('editor');
+      setFormData({
+        id: null,
+        title: "",
+        favourite: false,
+        image: "",
+        positive: "",
+        negative: "",
+        stylePrompt: "",
+        refinerPrompt: "",
+        width: 1024,
+        height: 1024,
+        steps: 30,
+        cfgScale: 7.0,
+        seed: -1,
+        sampler: "DPM++ 2M Karras",
+        scheduler: "Simple",
+        basemodel: "SDXL_1.0.safetensors",
+        checkpointtype: "Merged",
+        modelfileformat: "Safe Tensor",
+        modeltype: "Checkpoint",
+        vae: "Automatic",
+        clipSkip: 2,
+        denoise: 0.7,
+        addNoise: true,
+        startStep: 0,
+        endStep: 100,
+        processType: "Text to Image",
+        usedPromptType: "SDXL",
+        category: "Character Design",
+        subCategory: "",
+        comment: "",
+        modelUrl: "",
+        promptDate: new Date().toISOString().split("T")[0],
+      });
+      setErrorMsg("");
+      setIsSaving(false);
+      setEditorView("prompt");
+      setActiveTab("editor");
     }
   };
 
   const handleEdit = (prompt) => {
-    if (prompt.type === 'song') {
-      setSongFormData(prompt); setErrorMsg(''); setIsSaving(false); setSongEditorView('content'); setActiveTab('song-editor');
+    if (prompt.type === "song") {
+      setSongFormData(prompt);
+      setErrorMsg("");
+      setIsSaving(false);
+      setSongEditorView("content");
+      setActiveTab("song-editor");
     } else {
-      setFormData(prompt); setErrorMsg(''); setIsSaving(false); setEditorView('prompt'); setActiveTab('editor');
+      setFormData(prompt);
+      setErrorMsg("");
+      setIsSaving(false);
+      setEditorView("prompt");
+      setActiveTab("editor");
     }
   };
 
   const handleDelete = (e, id) => {
     e.stopPropagation();
-    showModal("Delete Prompt?", "This action cannot be undone.", async () => { await window.electron.deletePrompt(id); loadHistory(); }, true, "Delete");
+    showModal(
+      "Delete Prompt?",
+      "This action cannot be undone.",
+      async () => {
+        await window.electron.deletePrompt(id);
+        loadHistory();
+      },
+      true,
+      "Delete",
+    );
   };
 
   const handleSaveSong = async (silent = false) => {
@@ -441,16 +942,17 @@ const App = () => {
       return false;
     }
     setIsSaving(true);
-    setErrorMsg('');
+    setErrorMsg("");
     try {
-      const result = await window.electron.saveData({ ...songFormData, type: 'song' });
+      const result = await window.electron.saveData({ ...songFormData, type: "song" });
       if (!result.success) {
         setErrorMsg(result.error || "Unknown error occurred");
         setIsSaving(false);
         return false;
       }
-      setSongFormData(prev => ({ ...prev, id: result.id }));
-      if (!silent) setTimeout(() => setIsSaving(false), 1000); else setIsSaving(false);
+      setSongFormData((prev) => ({ ...prev, id: result.id }));
+      if (!silent) setTimeout(() => setIsSaving(false), 1000);
+      else setIsSaving(false);
       await loadHistory();
       return true;
     } catch (err) {
@@ -462,131 +964,277 @@ const App = () => {
 
   const handleSongBackOrCancel = async () => {
     if (!songFormData.id) {
-      showModal("Discard Song?", "You haven't saved this song yet. Discard?", () => setActiveTab('history'), true, "Discard");
+      showModal(
+        "Discard Song?",
+        "You haven't saved this song yet. Discard?",
+        () => setActiveTab("history"),
+        true,
+        "Discard",
+      );
       return;
     }
     const saved = await handleSaveSong(true);
-    if (saved) setActiveTab('history');
+    if (saved) setActiveTab("history");
   };
 
   // 1. Loading State
-  if (isAuthLoading) return <div className="h-screen flex items-center justify-center bg-[#121212] text-white"><Loader2 className="animate-spin text-blue-500" size={32} /></div>;
-
-  // 2. Login State
-  if (!user) return (
-    <div className="h-screen bg-[#121212] border border-[#333] shadow-2xl overflow-hidden rounded-xl relative flex flex-col">
-        <Modal 
-            isOpen={modalConfig.isOpen} 
-            title={modalConfig.title} 
-            message={modalConfig.message} 
-            onConfirm={modalConfig.onConfirm} 
-            onCancel={closeModal} 
-            isDestructive={modalConfig.isDestructive} 
-            confirmText={modalConfig.confirmText} 
-        />
-        <LoginScreen onLogin={handleLogin} />
-    </div>
-  );
-
-  // 3. FLOATING MODE UI
-  if (isFloating) {
+  if (isAuthLoading)
     return (
-      <div className="w-full h-full flex items-center justify-center bg-transparent">
-        <div 
-          className="w-24 h-24 rounded-full overflow-hidden border-2 border-white/20 shadow-2xl drag-handle cursor-move bg-[#121212] relative group flex items-center justify-center"
-        >
-          <img src={user.picture} alt="Floating User" className="w-full h-full object-cover pointer-events-none" />
-          <div 
-              className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity no-drag cursor-pointer"
-              onClick={toggleFloating}
-              title="Click to Restore"
-          >
-              <Maximize2 size={24} className="text-white drop-shadow-md" />
-          </div>
-        </div>
+      <div className="h-screen flex items-center justify-center bg-[#121212] text-white">
+        <Loader2 className="animate-spin text-blue-500" size={32} />
       </div>
     );
-  }
+
+  // 2. Login State
+  if (!user)
+    return (
+      <div className="h-screen bg-[#121212] border border-[#333] shadow-2xl overflow-hidden rounded-xl relative flex flex-col">
+        <Modal
+          isOpen={modalConfig.isOpen}
+          title={modalConfig.title}
+          message={modalConfig.message}
+          onConfirm={modalConfig.onConfirm}
+          onCancel={closeModal}
+          isDestructive={modalConfig.isDestructive}
+          confirmText={modalConfig.confirmText}
+        />
+        <LoginScreen onLogin={handleLogin} />
+      </div>
+    );
+
+  // 3. BUBBLE WINDOW MODE
+  if (IS_BUBBLE) return <FloatingProfile picture={BUBBLE_PICTURE} name={BUBBLE_NAME} />;
 
   // 4. MAIN AUTHENTICATED UI (NORMAL MODE)
   return (
     <div className="flex flex-col h-screen bg-[#121212] text-gray-100 border border-[#333] shadow-2xl overflow-hidden rounded-xl relative animate-in fade-in zoom-in duration-300">
-      <Modal isOpen={modalConfig.isOpen} title={modalConfig.title} message={modalConfig.message} onConfirm={modalConfig.onConfirm} onCancel={closeModal} isDestructive={modalConfig.isDestructive} confirmText={modalConfig.confirmText} />
-      
+      <Modal
+        isOpen={modalConfig.isOpen}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onConfirm={modalConfig.onConfirm}
+        onCancel={closeModal}
+        isDestructive={modalConfig.isDestructive}
+        confirmText={modalConfig.confirmText}
+      />
+
       {previewImage && (
-        <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-sm p-8 animate-in fade-in duration-200" onClick={() => setPreviewImage(null)}>
-            <div className="relative max-w-full max-h-full flex flex-col items-center">
-                 <button onClick={() => setPreviewImage(null)} className="absolute -top-12 right-0 bg-[#333] hover:bg-[#444] text-white p-2 rounded-full transition shadow-lg border border-[#555] z-50"><X size={20}/></button>
-                 <img src={previewImage} alt="Full Preview" className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border border-[#333]" onClick={e => e.stopPropagation()} />
-            </div>
+        <div
+          className="absolute inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-sm p-8 animate-in fade-in duration-200"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div className="relative max-w-full max-h-full flex flex-col items-center">
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute -top-12 right-0 bg-[#333] hover:bg-[#444] text-white p-2 rounded-full transition shadow-lg border border-[#555] z-50"
+            >
+              <X size={20} />
+            </button>
+            <img
+              src={previewImage}
+              alt="Full Preview"
+              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl border border-[#333]"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
         </div>
       )}
 
       {/* HEADER */}
       <div className="drag-handle h-14 bg-[#1a1a1a] flex items-center justify-between px-4 border-b border-[#333]">
         <div className="flex items-center gap-3">
-          <div className="relative group no-drag cursor-pointer" onClick={toggleFloating} title="Click to Switch to Floating Mode">
-             <div className="absolute -inset-1 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full blur opacity-0 group-hover:opacity-60 transition duration-300"></div>
-             <img src={user.picture} alt="User" className="relative w-10 h-10 rounded-full border-2 border-[#333] group-hover:border-white transition-all transform group-hover:scale-105 object-cover" />
+          <div
+            className="relative group no-drag cursor-pointer"
+            onClick={handleMinimize}
+            title="Click to Switch to Floating Mode"
+          >
+            <div className="absolute -inset-1 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full blur opacity-0 group-hover:opacity-60 transition duration-300"></div>
+            <img
+              src={user.picture}
+              alt="User"
+              className="relative w-10 h-10 rounded-full border-2 border-[#333] group-hover:border-white transition-all transform group-hover:scale-105 object-cover"
+            />
           </div>
 
           <div className="flex flex-col">
             <div className="font-bold text-sm tracking-wide text-gray-200 flex items-center gap-2">
-            {activeTab === 'history' ? 'Prompt Library' : activeTab === 'song-editor' ? (songFormData.id ? 'Edit Song' : 'New Song') : (formData.id ? 'Edit Prompt' : 'New Prompt')}
+              {activeTab === "history"
+                ? "Prompt Library"
+                : activeTab === "song-editor"
+                  ? songFormData.id
+                    ? "Edit Song"
+                    : "New Song"
+                  : formData.id
+                    ? "Edit Prompt"
+                    : "New Prompt"}
             </div>
             <div className="text-[10px] text-gray-500 font-mono uppercase tracking-wider">
-               {activeTab === 'history' ? `${history.length} Saved` : activeTab === 'song-editor' ? 'Song Editor' : 'Editor'}
+              {activeTab === "history"
+                ? `${history.length} Saved`
+                : activeTab === "song-editor"
+                  ? "Song Editor"
+                  : "Editor"}
             </div>
           </div>
         </div>
 
         <div className="flex gap-2 no-drag">
           {/* Heart Button */}
-          {(activeTab === 'editor' || activeTab === 'song-editor') && (
-            <button 
+          {(activeTab === "editor" || activeTab === "song-editor") && (
+            <button
               onClick={() => {
-                if (activeTab === 'song-editor') setSongFormData(prev => ({...prev, favourite: !prev.favourite}));
-                else setFormData(prev => ({...prev, favourite: !prev.favourite}));
+                if (activeTab === "song-editor")
+                  setSongFormData((prev) => ({
+                    ...prev,
+                    favourite: !prev.favourite,
+                  }));
+                else
+                  setFormData((prev) => ({
+                    ...prev,
+                    favourite: !prev.favourite,
+                  }));
               }}
               className={`p-2 rounded-lg transition flex items-center justify-center ${
-                (activeTab === 'song-editor' ? songFormData.favourite : formData.favourite)
-                  ? 'text-red-500 hover:bg-red-900/20' 
-                  : 'text-gray-400 hover:bg-[#333] hover:text-gray-200'
+                (
+                  activeTab === "song-editor"
+                    ? songFormData.favourite
+                    : formData.favourite
+                )
+                  ? "text-red-500 hover:bg-red-900/20"
+                  : "text-gray-400 hover:bg-[#333] hover:text-gray-200"
               }`}
               title="Toggle Favourite"
             >
-              <Heart size={18} fill={(activeTab === 'song-editor' ? songFormData.favourite : formData.favourite) ? "currentColor" : "none"} />
+              <Heart
+                size={18}
+                fill={
+                  (
+                    activeTab === "song-editor"
+                      ? songFormData.favourite
+                      : formData.favourite
+                  )
+                    ? "currentColor"
+                    : "none"
+                }
+              />
             </button>
           )}
 
-          <button onClick={handleLogout} className="p-2 hover:bg-[#333] rounded-lg text-gray-400 transition" title="Sign Out">
+          <button
+            onClick={handleLogout}
+            className="p-2 hover:bg-[#333] rounded-lg text-gray-400 transition"
+            title="Sign Out"
+          >
             <LogOut size={18} />
           </button>
-          
-          <button onClick={() => window.electron.quitApp()} className="p-2 hover:bg-red-900/50 hover:text-red-400 rounded-lg text-gray-400 transition"><X size={18} /></button>
+
+          <button
+            onClick={() => window.electron.quitApp()}
+            className="p-2 hover:bg-red-900/50 hover:text-red-400 rounded-lg text-gray-400 transition"
+          >
+            <X size={18} />
+          </button>
         </div>
       </div>
 
       <div className="flex-1 overflow-hidden relative flex flex-col">
-        {activeTab === 'history' && (
+        {activeTab === "history" && (
           <div className="h-full flex flex-col">
+            {user && (
+              <div className="relative px-2 py-1.5 bg-[#1e1e1e] border-b border-[#2a2a2a]">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-gray-600 flex-shrink-0">Source:</span>
+                  <button
+                    onClick={() => setSourceOpen((o) => !o)}
+                    className="flex-1 flex items-center justify-between bg-[#111] border border-[#333] text-gray-300 text-xs rounded px-1.5 py-1 hover:border-blue-500 transition min-w-0"
+                  >
+                    <span className="truncate">
+                      {checkedDriveIds.size === 0
+                        ? "Default"
+                        : `${checkedDriveIds.size} source${checkedDriveIds.size > 1 ? "s" : ""} active`}
+                    </span>
+                    <span className="ml-1 text-[10px] flex-shrink-0">{sourceOpen ? "▲" : "▼"}</span>
+                  </button>
+                  <button
+                    onClick={loadDriveFiles}
+                    title="Refresh"
+                    className="flex-shrink-0 p-1 text-gray-600 hover:text-gray-300 hover:bg-[#333] rounded transition"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+                      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                    </svg>
+                  </button>
+                  {isDriveLoading && <Loader2 size={12} className="animate-spin text-gray-500 flex-shrink-0" />}
+                </div>
+
+                {sourceOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setSourceOpen(false)} />
+                    <div className="absolute left-2 right-2 top-full mt-0.5 z-50 bg-[#1a1a1a] border border-[#333] rounded shadow-xl overflow-hidden">
+                      <button
+                        onClick={() => { handleDefaultClick(); setSourceOpen(false); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-[#222] transition"
+                      >
+                        <span className={`w-3 h-3 rounded border flex-shrink-0 flex items-center justify-center ${checkedDriveIds.size === 0 ? "bg-blue-600 border-blue-600" : "border-[#555]"}`}>
+                          {checkedDriveIds.size === 0 && <Check size={8} className="text-white" />}
+                        </span>
+                        <span className={checkedDriveIds.size === 0 ? "text-gray-200 font-bold" : "text-gray-500"}>Default</span>
+                      </button>
+
+                      {driveFiles.length > 0 && (
+                        <>
+                          <div className="px-3 py-1 text-[10px] text-gray-600 border-t border-[#2a2a2a]">📁 Snap Prompt</div>
+                          {driveFiles.map((f) => {
+                            const checked = checkedDriveIds.has(f.id);
+                            return (
+                              <button
+                                key={f.id}
+                                onClick={() => toggleDriveFile(f.id)}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-[#222] transition"
+                              >
+                                <span className={`w-3 h-3 rounded border flex-shrink-0 flex items-center justify-center ${checked ? "bg-blue-600 border-blue-600" : "border-[#555]"}`}>
+                                  {checked && <Check size={8} className="text-white" />}
+                                </span>
+                                <span className={`truncate ${checked ? "text-blue-300" : "text-gray-400"}`}>
+                                  {f.name.replace(/\.json$/i, "")}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </>
+                      )}
+
+                      {driveFiles.length === 0 && (
+                        <p className="px-3 py-2 text-[10px] text-gray-600 border-t border-[#2a2a2a]">
+                          No files found in Snap Prompt folder
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
             <div className="flex items-center gap-1.5 px-2 py-2 bg-[#252525] border-b border-[#333]">
               <select
                 value={libraryMode}
-                onChange={(e) => { setLibraryMode(e.target.value); setGroupBy('none'); }}
+                onChange={(e) => {
+                  setLibraryMode(e.target.value);
+                  setGroupBy("none");
+                }}
                 className="bg-[#1a1a1a] border border-[#333] text-gray-300 text-xs rounded px-1.5 py-1 outline-none focus:border-purple-500 min-w-0 flex-shrink-0"
-                style={{maxWidth: '110px'}}
+                style={{ maxWidth: "110px" }}
               >
                 <option value="image">🖼 Images</option>
                 <option value="song">🎵 Songs</option>
               </select>
-              <select 
-                value={groupBy} 
+              <select
+                value={groupBy}
                 onChange={(e) => setGroupBy(e.target.value)}
                 className="bg-[#1a1a1a] border border-[#333] text-gray-300 text-xs rounded px-1.5 py-1 outline-none focus:border-blue-500 min-w-0 flex-1"
               >
                 <option value="none">Group: None</option>
-                {libraryMode === 'song' ? (
+                {libraryMode === "song" ? (
                   <>
                     <option value="genre">Genre</option>
                     <option value="keyscale">Key / Scale</option>
@@ -606,23 +1254,28 @@ const App = () => {
                 )}
               </select>
               <div className="flex-shrink-0">
-
-               <button onClick={handleAddNew} className={`${libraryMode === 'song' ? 'bg-purple-600 hover:bg-purple-500' : 'bg-blue-600 hover:bg-blue-500'} text-white p-1.5 rounded-lg shadow-lg transition-all hover:scale-105 flex items-center gap-1 pr-2`}>
-                  <Plus size={16} /> <span className="text-xs font-bold">NEW</span>
-               </button>
-            </div>
+                <button
+                  onClick={handleAddNew}
+                  className={`${libraryMode === "song" ? "bg-purple-600 hover:bg-purple-500" : "bg-blue-600 hover:bg-blue-500"} text-white p-1.5 rounded-lg shadow-lg transition-all hover:scale-105 flex items-center gap-1 pr-2`}
+                >
+                  <Plus size={16} />{" "}
+                  <span className="text-xs font-bold">NEW</span>
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-2 custom-scrollbar space-y-2">
               {Object.entries(groupedPrompts).map(([groupName, groupItems]) => (
-                <details 
-                  key={groupName} 
-                  open={true} 
+                <details
+                  key={groupName}
+                  open={true}
                   className="group bg-[#1a1a1a] border border-[#333] rounded overflow-hidden"
                 >
                   <summary className="cursor-pointer bg-[#222] p-2 text-xs font-bold text-gray-400 uppercase tracking-wider select-none hover:bg-[#2a2a2a] flex justify-between items-center outline-none">
                     <span className="flex items-center">
-                      <span className="mr-2 transform transition-transform group-open:rotate-90 text-[10px]">▶</span>
+                      <span className="mr-2 transform transition-transform group-open:rotate-90 text-[10px]">
+                        ▶
+                      </span>
                       {groupName}
                     </span>
                     <span className="bg-[#333] text-gray-500 px-2 py-0.5 rounded-full text-[10px]">
@@ -632,46 +1285,103 @@ const App = () => {
 
                   <div className="p-2 space-y-2">
                     {groupItems.map((item) => (
-                      <div key={item.id} onClick={() => handleEdit(item)} className="group/card bg-[#1e1e1e] hover:bg-[#252525] border border-[#333] hover:border-[#555] rounded-lg p-3 cursor-pointer transition-all shadow-sm relative flex gap-3">
-                        {item.type === 'song' ? (
+                      <div
+                        key={item.id}
+                        onClick={() => handleEdit(item)}
+                        className="group/card bg-[#1e1e1e] hover:bg-[#252525] border border-[#333] hover:border-[#555] rounded-lg p-3 cursor-pointer transition-all shadow-sm relative flex gap-3"
+                      >
+                        {item.type === "song" ? (
                           <div className="flex-1 min-w-0 flex flex-col gap-1.5">
                             <div className="flex justify-between items-start">
                               <div className="flex items-center gap-2">
-                                <Music size={14} className="text-purple-400 flex-shrink-0" />
-                                <h3 className="font-bold text-gray-200 truncate pr-8">{item.title}</h3>
+                                <Music
+                                  size={14}
+                                  className="text-purple-400 flex-shrink-0"
+                                />
+                                <h3 className="font-bold text-gray-200 truncate pr-8">
+                                  {item.title}
+                                </h3>
                               </div>
-                              <button onClick={(e) => handleDelete(e, item.id)} className="absolute top-3 right-3 p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded transition"><Trash2 size={14} /></button>
+                              <button
+                                onClick={(e) => handleDelete(e, item.id)}
+                                className="absolute top-3 right-3 p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded transition"
+                              >
+                                <Trash2 size={14} />
+                              </button>
                             </div>
                             {(item.genre || item.tags) && (
                               <div className="flex gap-1 flex-wrap">
                                 {item.genre && (
-                                  <span className="text-[10px] bg-purple-900/40 text-purple-300 px-1.5 py-0.5 rounded border border-purple-800/40 font-bold">{item.genre}</span>
+                                  <span className="text-[10px] bg-purple-900/40 text-purple-300 px-1.5 py-0.5 rounded border border-purple-800/40 font-bold">
+                                    {item.genre}
+                                  </span>
                                 )}
-                                {item.tags && item.tags.split(',').map(tag => tag.trim()).filter(Boolean).map(tag => (
-                                  <span key={tag} className="text-[10px] bg-[#1a1a1a] text-gray-500 px-1.5 py-0.5 rounded border border-[#2a2a2a]">{tag}</span>
-                                ))}
+                                {item.tags &&
+                                  item.tags
+                                    .split(",")
+                                    .map((tag) => tag.trim())
+                                    .filter(Boolean)
+                                    .map((tag) => (
+                                      <span
+                                        key={tag}
+                                        className="text-[10px] bg-[#1a1a1a] text-gray-500 px-1.5 py-0.5 rounded border border-[#2a2a2a]"
+                                      >
+                                        {tag}
+                                      </span>
+                                    ))}
                               </div>
                             )}
                             <div className="text-xs text-gray-500 bg-[#121212] p-2 rounded border border-[#222] line-clamp-2 font-mono">
-                              {item.prompt || <span className="text-gray-600 italic">No prompt yet</span>}
+                              {item.prompt || (
+                                <span className="text-gray-600 italic">
+                                  No prompt yet
+                                </span>
+                              )}
                             </div>
                           </div>
                         ) : (
                           <>
                             {item.image && (
-                                <div className="flex-shrink-0" onClick={(e) => { e.stopPropagation(); setPreviewImage(item.image); }}>
-                                    <img src={item.image} alt="Ref" className="w-20 h-20 object-cover rounded bg-[#121212] border border-[#333] hover:opacity-80 hover:scale-105 transition duration-200 cursor-zoom-in" />
-                                </div>
+                              <div
+                                className="flex-shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPreviewImage(item.image);
+                                }}
+                              >
+                                <img
+                                  src={item.image}
+                                  alt="Ref"
+                                  className="w-20 h-20 object-cover rounded bg-[#121212] border border-[#333] hover:opacity-80 hover:scale-105 transition duration-200 cursor-zoom-in"
+                                />
+                              </div>
                             )}
                             <div className="flex-1 min-w-0 flex flex-col">
-                                <div className="flex justify-between items-start mb-1">
-                                    <h3 className="font-bold text-gray-200 truncate pr-8">{item.title}</h3>
-                                    <button onClick={(e) => handleDelete(e, item.id)} className="absolute top-3 right-3 p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded transition"><Trash2 size={14} /></button>
-                                </div>
-                                <p className="text-xs text-gray-500 mb-2 flex items-center gap-1"><Calendar size={10}/> {item.promptDate || new Date(parseInt(item.id)).toLocaleDateString()}</p>
-                                <div className="text-sm text-gray-400 line-clamp-2 font-mono text-xs bg-[#121212] p-2 rounded border border-[#222] h-full">
-                                    {item.positive || <span className="text-gray-600 italic">No prompt text</span>}
-                                </div>
+                              <div className="flex justify-between items-start mb-1">
+                                <h3 className="font-bold text-gray-200 truncate pr-8">
+                                  {item.title}
+                                </h3>
+                                <button
+                                  onClick={(e) => handleDelete(e, item.id)}
+                                  className="absolute top-3 right-3 p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded transition"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                              <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                                <Calendar size={10} />{" "}
+                                {item.promptDate ||
+                                  new Date(
+                                    parseInt(item.id),
+                                  ).toLocaleDateString()}
+                              </p>
+                              <div className="text-sm text-gray-400 line-clamp-2 font-mono text-xs bg-[#121212] p-2 rounded border border-[#222] h-full">
+                                {item.positive || (
+                                  <span className="text-gray-600 italic">
+                                    No prompt text
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </>
                         )}
@@ -680,7 +1390,7 @@ const App = () => {
                   </div>
                 </details>
               ))}
-              
+
               {Object.keys(groupedPrompts).length === 0 && (
                 <div className="text-center text-gray-500 mt-10 text-sm flex flex-col items-center gap-2 opacity-50">
                   <MessageSquare size={40} />
@@ -688,112 +1398,415 @@ const App = () => {
                 </div>
               )}
             </div>
+            <ConfigEditor configs={configs} driveFiles={driveFiles} driveKeyMap={driveKeyMap} onConfigSaved={reloadConfigs} />
           </div>
         )}
 
-        {activeTab === 'editor' && (
+        {activeTab === "editor" && (
           <div className="flex flex-col h-full">
             <div className="flex border-b border-[#333] bg-[#1a1a1a]">
-                <button onClick={() => setEditorView('prompt')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition ${editorView === 'prompt' ? 'text-blue-400 bg-[#222] border-b-2 border-blue-500' : 'text-gray-500 hover:bg-[#222]'}`}><MessageSquare size={14}/> Prompt</button>
-                <button onClick={() => setEditorView('settings')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition ${editorView === 'settings' ? 'text-blue-400 bg-[#222] border-b-2 border-blue-500' : 'text-gray-500 hover:bg-[#222]'}`}><Sliders size={14}/> Settings</button>
-                <button onClick={() => setEditorView('notes')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition ${editorView === 'notes' ? 'text-blue-400 bg-[#222] border-b-2 border-blue-500' : 'text-gray-500 hover:bg-[#222]'}`}><FileText size={14}/> Notes</button>
+              <button
+                onClick={() => setEditorView("prompt")}
+                className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition ${editorView === "prompt" ? "text-blue-400 bg-[#222] border-b-2 border-blue-500" : "text-gray-500 hover:bg-[#222]"}`}
+              >
+                <MessageSquare size={14} /> Prompt
+              </button>
+              <button
+                onClick={() => setEditorView("settings")}
+                className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition ${editorView === "settings" ? "text-blue-400 bg-[#222] border-b-2 border-blue-500" : "text-gray-500 hover:bg-[#222]"}`}
+              >
+                <Sliders size={14} /> Settings
+              </button>
+              <button
+                onClick={() => setEditorView("notes")}
+                className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition ${editorView === "notes" ? "text-blue-400 bg-[#222] border-b-2 border-blue-500" : "text-gray-500 hover:bg-[#222]"}`}
+              >
+                <FileText size={14} /> Notes
+              </button>
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
-              {errorMsg && <div className="bg-red-900/20 border border-red-800 text-red-200 px-3 py-2 rounded text-sm flex items-center gap-2 animate-pulse"><AlertCircle size={16} /> {errorMsg}</div>}
+              {errorMsg && (
+                <div className="bg-red-900/20 border border-red-800 text-red-200 px-3 py-2 rounded text-sm flex items-center gap-2 animate-pulse">
+                  <AlertCircle size={16} /> {errorMsg}
+                </div>
+              )}
 
-              {editorView === 'prompt' && (
+              {editorView === "prompt" && (
                 <>
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Title <span className="text-red-500">*</span></label>
-                    <input type="text" value={formData.title} onChange={handleTitleChange} disabled={isSaving} className="w-full bg-[#1a1a1a] border border-[#333] focus:border-blue-500 rounded p-2 text-white outline-none transition disabled:opacity-50" placeholder="e.g. Cyberpunk City"/>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
+                      Title <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.title}
+                      onChange={handleTitleChange}
+                      disabled={isSaving}
+                      className="w-full bg-[#1a1a1a] border border-[#333] focus:border-blue-500 rounded p-2 text-white outline-none transition disabled:opacity-50"
+                      placeholder="e.g. Cyberpunk City"
+                    />
                   </div>
-                  
+
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 flex items-center gap-2">Reference Image <span className="text-[10px] font-normal text-gray-600">(Max 1MB)</span></label>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 flex items-center gap-2">
+                      Reference Image{" "}
+                      <span className="text-[10px] font-normal text-gray-600">
+                        (Max 1MB)
+                      </span>
+                    </label>
                     <div className="flex items-start gap-4">
-                        {formData.image ? (
-                            <div className="relative group">
-                                <img src={formData.image} alt="Preview" className="w-24 h-24 object-cover rounded-lg border border-[#333] shadow-lg cursor-zoom-in" onClick={() => setPreviewImage(formData.image)} />
-                                <button onClick={() => setFormData({...formData, image: ""})} className="absolute -top-2 -right-2 bg-red-600 text-white p-1 rounded-full shadow-md hover:bg-red-500 transition scale-90 hover:scale-110"><X size={12}/></button>
-                            </div>
-                        ) : (
-                            <label className="w-24 h-24 border border-dashed border-[#444] rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-blue-500 hover:text-blue-500 hover:bg-[#1f1f1f] cursor-pointer transition">
-                                <Upload size={20} /> <span className="text-[10px] mt-1 font-bold">UPLOAD</span> <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                            </label>
-                        )}
-                        <div className="text-xs text-gray-500 mt-2 flex-1">
-                             {formData.image ? "Image attached. It will be saved with your prompt." : "Attach a reference image to this prompt."}
+                      {formData.image ? (
+                        <div className="relative group">
+                          <img
+                            src={formData.image}
+                            alt="Preview"
+                            className="w-24 h-24 object-cover rounded-lg border border-[#333] shadow-lg cursor-zoom-in"
+                            onClick={() => setPreviewImage(formData.image)}
+                          />
+                          <button
+                            onClick={() =>
+                              setFormData({ ...formData, image: "" })
+                            }
+                            className="absolute -top-2 -right-2 bg-red-600 text-white p-1 rounded-full shadow-md hover:bg-red-500 transition scale-90 hover:scale-110"
+                          >
+                            <X size={12} />
+                          </button>
                         </div>
+                      ) : (
+                        <label className="w-24 h-24 border border-dashed border-[#444] rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-blue-500 hover:text-blue-500 hover:bg-[#1f1f1f] cursor-pointer transition">
+                          <Upload size={20} />{" "}
+                          <span className="text-[10px] mt-1 font-bold">
+                            UPLOAD
+                          </span>{" "}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleImageUpload}
+                          />
+                        </label>
+                      )}
+                      <div className="text-xs text-gray-500 mt-2 flex-1">
+                        {formData.image
+                          ? "Image attached. It will be saved with your prompt."
+                          : "Attach a reference image to this prompt."}
+                      </div>
                     </div>
                   </div>
 
                   <div className="space-y-1">
                     <div className="flex justify-between items-center mb-1">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 text-green-500">Positive Prompt</label>
-                        <div className="flex gap-2">
-                            <button onClick={() => handleCopy(formData.positive)} className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition" title="Copy"><Copy size={12}/></button>
-                            <button onClick={() => handlePaste('positive')} className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition" title="Paste"><Clipboard size={12}/></button>
-                        </div>
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 text-green-500">
+                        Positive Prompt
+                      </label>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleCopy(formData.positive)}
+                          className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition"
+                          title="Copy"
+                        >
+                          <Copy size={12} />
+                        </button>
+                        <button
+                          onClick={() => handlePaste("positive")}
+                          className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition"
+                          title="Paste"
+                        >
+                          <Clipboard size={12} />
+                        </button>
+                      </div>
                     </div>
-                    <textarea value={formData.positive} onChange={e => setFormData({...formData, positive: e.target.value})} disabled={isSaving} className="w-full h-32 bg-[#1a1a1a] border border-[#333] focus:border-green-500/50 rounded p-2 text-sm text-gray-200 outline-none resize-none font-mono disabled:opacity-50" placeholder="What do you want to see?"/>
+                    <textarea
+                      value={formData.positive}
+                      onChange={(e) =>
+                        setFormData({ ...formData, positive: e.target.value })
+                      }
+                      disabled={isSaving}
+                      className="w-full h-32 bg-[#1a1a1a] border border-[#333] focus:border-green-500/50 rounded p-2 text-sm text-gray-200 outline-none resize-none font-mono disabled:opacity-50"
+                      placeholder="What do you want to see?"
+                    />
                   </div>
-                  
+
                   <div className="space-y-1">
                     <div className="flex justify-between items-center mb-1">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 text-red-400">Negative Prompt</label>
-                        <div className="flex gap-2">
-                            <button onClick={() => handleCopy(formData.negative)} className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition" title="Copy"><Copy size={12}/></button>
-                            <button onClick={() => handlePaste('negative')} className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition" title="Paste"><Clipboard size={12}/></button>
-                        </div>
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 text-red-400">
+                        Negative Prompt
+                      </label>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleCopy(formData.negative)}
+                          className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition"
+                          title="Copy"
+                        >
+                          <Copy size={12} />
+                        </button>
+                        <button
+                          onClick={() => handlePaste("negative")}
+                          className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition"
+                          title="Paste"
+                        >
+                          <Clipboard size={12} />
+                        </button>
+                      </div>
                     </div>
-                    <textarea value={formData.negative} onChange={e => setFormData({...formData, negative: e.target.value})} disabled={isSaving} className="w-full h-24 bg-[#1a1a1a] border border-[#333] focus:border-red-500/50 rounded p-2 text-sm text-gray-200 outline-none resize-none font-mono disabled:opacity-50" placeholder="What to avoid?"/>
+                    <textarea
+                      value={formData.negative}
+                      onChange={(e) =>
+                        setFormData({ ...formData, negative: e.target.value })
+                      }
+                      disabled={isSaving}
+                      className="w-full h-24 bg-[#1a1a1a] border border-[#333] focus:border-red-500/50 rounded p-2 text-sm text-gray-200 outline-none resize-none font-mono disabled:opacity-50"
+                      placeholder="What to avoid?"
+                    />
                   </div>
                 </>
               )}
 
-              {editorView === 'settings' && (
+              {editorView === "settings" && (
                 <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4 pt-2">
-                         <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Steps: {formData.steps}</label><input type="range" min="1" max="100" value={formData.steps} onChange={e => setFormData({...formData, steps: parseInt(e.target.value)})} className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-blue-500" /></div>
-                         <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">CFG Scale: {formData.cfgScale}</label><input type="range" min="1" max="30" step="0.5" value={formData.cfgScale} onChange={e => setFormData({...formData, cfgScale: parseFloat(e.target.value)})} className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-blue-500" /></div>
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                        Steps: {formData.steps}
+                      </label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="100"
+                        value={formData.steps}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            steps: parseInt(e.target.value),
+                          })
+                        }
+                        className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-blue-500"
+                      />
                     </div>
-                    <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Base Model</label><select value={formData.basemodel} onChange={e => setFormData({...formData, basemodel: e.target.value})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none">{configs.basemodels?.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
-                    <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Model Type</label><select value={formData.modeltype} onChange={e => setFormData({...formData, modeltype: e.target.value})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none">{configs.modeltypes?.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
-                    <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Checkpoint Type</label><select value={formData.checkpointtype} onChange={e => setFormData({...formData, checkpointtype: e.target.value})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none">{configs.checkpointtypes?.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
-                    <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">File Format</label><select value={formData.modelfileformat} onChange={e => setFormData({...formData, modelfileformat: e.target.value})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none">{configs.modelfileformats?.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
-                    <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Categories</label><select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none">{configs.categories?.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
-                    <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Sampling Method</label><select value={formData.sampler} onChange={e => setFormData({...formData, sampler: e.target.value})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none">{configs.samplers?.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
-                    <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Resolution</label><select value={formData.modelresolution} onChange={e => setFormData({...formData, modelresolution: e.target.value})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none">{configs.modelresolutions?.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
-                    <div className="grid grid-cols-2 gap-4">
-                         <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Width</label><input type="number" value={formData.width} onChange={e => setFormData({...formData, width: parseInt(e.target.value)})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none" /></div>
-                         <div className="space-y-1"><label className="text-xs font-bold text-gray-500 uppercase ml-1">Height</label><input type="number" value={formData.height} onChange={e => setFormData({...formData, height: parseInt(e.target.value)})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none" /></div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                        CFG Scale: {formData.cfgScale}
+                      </label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="30"
+                        step="0.5"
+                        value={formData.cfgScale}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            cfgScale: parseFloat(e.target.value),
+                          })
+                        }
+                        className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-blue-500"
+                      />
                     </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                      Base Model
+                    </label>
+                    <select
+                      value={formData.basemodel}
+                      onChange={(e) =>
+                        setFormData({ ...formData, basemodel: e.target.value })
+                      }
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
+                    >
+                      {configs.basemodels?.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                      Model Type
+                    </label>
+                    <select
+                      value={formData.modeltype}
+                      onChange={(e) =>
+                        setFormData({ ...formData, modeltype: e.target.value })
+                      }
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
+                    >
+                      {configs.modeltypes?.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                      Checkpoint Type
+                    </label>
+                    <select
+                      value={formData.checkpointtype}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          checkpointtype: e.target.value,
+                        })
+                      }
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
+                    >
+                      {configs.checkpointtypes?.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                      File Format
+                    </label>
+                    <select
+                      value={formData.modelfileformat}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          modelfileformat: e.target.value,
+                        })
+                      }
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
+                    >
+                      {configs.modelfileformats?.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                      Categories
+                    </label>
+                    <select
+                      value={formData.category}
+                      onChange={(e) =>
+                        setFormData({ ...formData, category: e.target.value })
+                      }
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
+                    >
+                      {configs.categories?.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                      Sampling Method
+                    </label>
+                    <select
+                      value={formData.sampler}
+                      onChange={(e) =>
+                        setFormData({ ...formData, sampler: e.target.value })
+                      }
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
+                    >
+                      {configs.samplers?.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                      Resolution
+                    </label>
+                    <select
+                      value={formData.modelresolution}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          modelresolution: e.target.value,
+                        })
+                      }
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
+                    >
+                      {configs.modelresolutions?.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                        Width
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.width}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            width: parseInt(e.target.value),
+                          })
+                        }
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                        Height
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.height}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            height: parseInt(e.target.value),
+                          })
+                        }
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {editorView === 'notes' && (
+              {editorView === "notes" && (
                 <div className="h-full flex flex-col space-y-4 overflow-y-auto pr-1 custom-scrollbar">
-                  
                   {/* Existing Notes Field */}
                   <div className="space-y-1 flex-shrink-0">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Personal Notes</label>
-                    <textarea 
-                      value={formData.comment} 
-                      onChange={e => setFormData({...formData, comment: e.target.value})} 
-                      className="w-full h-32 bg-[#1a1a1a] border border-[#333] focus:border-blue-500/50 rounded p-2 text-sm text-gray-400 outline-none resize-none" 
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
+                      Personal Notes
+                    </label>
+                    <textarea
+                      value={formData.comment}
+                      onChange={(e) =>
+                        setFormData({ ...formData, comment: e.target.value })
+                      }
+                      className="w-full h-32 bg-[#1a1a1a] border border-[#333] focus:border-blue-500/50 rounded p-2 text-sm text-gray-400 outline-none resize-none"
                       placeholder="Add your thoughts, tags, or context here..."
                     />
                   </div>
 
                   {/* New Fields Container */}
                   <div className="grid grid-cols-2 gap-3 pb-4">
-
                     <div className="col-span-2 space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Process Type</label>
-                      <select 
-                        value={formData.processType || ''} 
-                        onChange={e => setFormData({...formData, processType: e.target.value})} 
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                        Process Type
+                      </label>
+                      <select
+                        value={formData.processType || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            processType: e.target.value,
+                          })
+                        }
                         className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
                       >
                         <option value="">Select Type</option>
@@ -806,156 +1819,290 @@ const App = () => {
                     </div>
 
                     <div className="col-span-2 space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Model URL</label>
-                      <input 
-                        type="text" 
-                        value={formData.modelUrl || ''} 
-                        onChange={e => setFormData({...formData, modelUrl: e.target.value})} 
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                        Model URL
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.modelUrl || ""}
+                        onChange={(e) =>
+                          setFormData({ ...formData, modelUrl: e.target.value })
+                        }
                         className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
                         placeholder="https://..."
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Prompt Date</label>
-                      <input 
-                        type="date" 
-                        value={formData.promptDate || new Date().toISOString().split('T')[0]} 
-                        onChange={e => setFormData({...formData, promptDate: e.target.value})} 
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                        Prompt Date
+                      </label>
+                      <input
+                        type="date"
+                        value={
+                          formData.promptDate ||
+                          new Date().toISOString().split("T")[0]
+                        }
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            promptDate: e.target.value,
+                          })
+                        }
                         className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none [color-scheme:dark]"
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">VAE</label>
-                      <input 
-                        type="text" 
-                        value={formData.vae || ''} 
-                        onChange={e => setFormData({...formData, vae: e.target.value})} 
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                        VAE
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.vae || ""}
+                        onChange={(e) =>
+                          setFormData({ ...formData, vae: e.target.value })
+                        }
                         className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Clip Skip</label>
-                      <input 
-                        type="number" 
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                        Clip Skip
+                      </label>
+                      <input
+                        type="number"
                         step="1"
-                        value={formData.clipSkip || ''} 
-                        onChange={e => setFormData({...formData, clipSkip: parseInt(e.target.value) || 0})} 
+                        value={formData.clipSkip || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            clipSkip: parseInt(e.target.value) || 0,
+                          })
+                        }
                         className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Denoise</label>
-                      <input 
-                        type="number" 
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                        Denoise
+                      </label>
+                      <input
+                        type="number"
                         step="0.01"
-                        value={formData.denoise || ''} 
-                        onChange={e => setFormData({...formData, denoise: parseFloat(e.target.value) || 0.0})} 
+                        value={formData.denoise || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            denoise: parseFloat(e.target.value) || 0.0,
+                          })
+                        }
                         className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Start Step</label>
-                      <input 
-                        type="number" 
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                        Start Step
+                      </label>
+                      <input
+                        type="number"
                         step="1"
-                        value={formData.startStep || ''} 
-                        onChange={e => setFormData({...formData, startStep: parseInt(e.target.value) || 0})} 
+                        value={formData.startStep || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            startStep: parseInt(e.target.value) || 0,
+                          })
+                        }
                         className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">End Step</label>
-                      <input 
-                        type="number" 
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                        End Step
+                      </label>
+                      <input
+                        type="number"
                         step="1"
-                        value={formData.endStep || ''} 
-                        onChange={e => setFormData({...formData, endStep: parseInt(e.target.value) || 0})} 
+                        value={formData.endStep || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            endStep: parseInt(e.target.value) || 0,
+                          })
+                        }
                         className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
                       />
                     </div>
 
                     <div className="col-span-2 flex items-center space-x-3 p-1 mt-1">
-                      <input 
-                        type="checkbox" 
-                        checked={formData.addNoise || false} 
-                        onChange={e => setFormData({...formData, addNoise: e.target.checked})} 
+                      <input
+                        type="checkbox"
+                        checked={formData.addNoise || false}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            addNoise: e.target.checked,
+                          })
+                        }
                         className="w-4 h-4 rounded bg-[#1a1a1a] border border-[#333] text-blue-500 focus:ring-0"
                       />
-                      <label className="text-sm text-gray-300 select-none">Add Noise</label>
+                      <label className="text-sm text-gray-300 select-none">
+                        Add Noise
+                      </label>
                     </div>
-
                   </div>
                 </div>
               )}
             </div>
 
             <div className="p-4 bg-[#1a1a1a]/95 backdrop-blur border-t border-[#333] flex gap-3">
-              <button onClick={handleBackOrCancel} className={`flex-1 py-2 rounded-lg font-bold transition flex items-center justify-center gap-2 ${!formData.id ? 'bg-red-900/20 text-red-400 hover:bg-red-900/40' : 'bg-[#333] hover:bg-[#444] text-gray-200'}`}>
-                {!formData.id ? <Ban size={18} /> : <ArrowLeft size={18} />} {!formData.id ? 'Cancel' : 'Back'}
+              <button
+                onClick={handleBackOrCancel}
+                className={`flex-1 py-2 rounded-lg font-bold transition flex items-center justify-center gap-2 ${!formData.id ? "bg-red-900/20 text-red-400 hover:bg-red-900/40" : "bg-[#333] hover:bg-[#444] text-gray-200"}`}
+              >
+                {!formData.id ? <Ban size={18} /> : <ArrowLeft size={18} />}{" "}
+                {!formData.id ? "Cancel" : "Back"}
               </button>
-              <button onClick={() => handleSave(false)} disabled={isSaving} className={`flex-1 ${isSaving ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-500'} text-white py-2 rounded-lg font-bold shadow-lg shadow-blue-900/20 transition-all flex items-center justify-center gap-2`}>
-                {isSaving ? <Check size={18} /> : <Save size={18} />} {isSaving ? 'Saved!' : 'Save'}
+              <button
+                onClick={() => handleSave(false)}
+                disabled={isSaving}
+                className={`flex-1 ${isSaving ? "bg-green-600" : "bg-blue-600 hover:bg-blue-500"} text-white py-2 rounded-lg font-bold shadow-lg shadow-blue-900/20 transition-all flex items-center justify-center gap-2`}
+              >
+                {isSaving ? <Check size={18} /> : <Save size={18} />}{" "}
+                {isSaving ? "Saved!" : "Save"}
               </button>
             </div>
           </div>
         )}
 
         {/* SONG EDITOR */}
-        {activeTab === 'song-editor' && (
+        {activeTab === "song-editor" && (
           <div className="flex flex-col h-full">
             <div className="flex border-b border-[#333] bg-[#1a1a1a]">
-              <button onClick={() => setSongEditorView('content')} className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition ${songEditorView === 'content' ? 'text-purple-400 bg-[#222] border-b-2 border-purple-500' : 'text-gray-500 hover:bg-[#222]'}`}><Mic2 size={12}/> Content</button>
-              <button onClick={() => setSongEditorView('generation')} className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition ${songEditorView === 'generation' ? 'text-purple-400 bg-[#222] border-b-2 border-purple-500' : 'text-gray-500 hover:bg-[#222]'}`}><Sliders size={12}/> Generation</button>
-              <button onClick={() => setSongEditorView('model')} className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition ${songEditorView === 'model' ? 'text-purple-400 bg-[#222] border-b-2 border-purple-500' : 'text-gray-500 hover:bg-[#222]'}`}><FileText size={12}/> Model</button>
-              <button onClick={() => setSongEditorView('sampler')} className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition ${songEditorView === 'sampler' ? 'text-purple-400 bg-[#222] border-b-2 border-purple-500' : 'text-gray-500 hover:bg-[#222]'}`}><Music size={12}/> Sampler</button>
+              <button
+                onClick={() => setSongEditorView("content")}
+                className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition ${songEditorView === "content" ? "text-purple-400 bg-[#222] border-b-2 border-purple-500" : "text-gray-500 hover:bg-[#222]"}`}
+              >
+                <Mic2 size={12} /> Content
+              </button>
+              <button
+                onClick={() => setSongEditorView("generation")}
+                className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition ${songEditorView === "generation" ? "text-purple-400 bg-[#222] border-b-2 border-purple-500" : "text-gray-500 hover:bg-[#222]"}`}
+              >
+                <Sliders size={12} /> Generation
+              </button>
+              <button
+                onClick={() => setSongEditorView("model")}
+                className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition ${songEditorView === "model" ? "text-purple-400 bg-[#222] border-b-2 border-purple-500" : "text-gray-500 hover:bg-[#222]"}`}
+              >
+                <FileText size={12} /> Model
+              </button>
+              <button
+                onClick={() => setSongEditorView("sampler")}
+                className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition ${songEditorView === "sampler" ? "text-purple-400 bg-[#222] border-b-2 border-purple-500" : "text-gray-500 hover:bg-[#222]"}`}
+              >
+                <Music size={12} /> Sampler
+              </button>
+              <button
+                onClick={() => setSongEditorView("notes")}
+                className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition ${songEditorView === "notes" ? "text-purple-400 bg-[#222] border-b-2 border-purple-500" : "text-gray-500 hover:bg-[#222]"}`}
+              >
+                <MessageSquare size={12} /> Notes
+              </button>
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
-              {errorMsg && <div className="bg-red-900/20 border border-red-800 text-red-200 px-3 py-2 rounded text-sm flex items-center gap-2 animate-pulse"><AlertCircle size={16} /> {errorMsg}</div>}
+              {errorMsg && (
+                <div className="bg-red-900/20 border border-red-800 text-red-200 px-3 py-2 rounded text-sm flex items-center gap-2 animate-pulse">
+                  <AlertCircle size={16} /> {errorMsg}
+                </div>
+              )}
 
               {/* TAB 01 — CONTENT */}
-              {songEditorView === 'content' && (
+              {songEditorView === "content" && (
                 <>
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Title <span className="text-red-500">*</span></label>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
+                      Title <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
                       value={songFormData.title}
-                      onChange={e => { setErrorMsg(''); setSongFormData(prev => ({...prev, title: e.target.value})); }}
+                      onChange={(e) => {
+                        setErrorMsg("");
+                        setSongFormData((prev) => ({
+                          ...prev,
+                          title: e.target.value,
+                        }));
+                      }}
                       className="w-full bg-[#1a1a1a] border border-[#333] focus:border-purple-500 rounded p-2 text-white outline-none transition"
                       placeholder="e.g. Midnight Drift"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Genre</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
+                      Genre
+                    </label>
                     <select
-                      value={songFormData.genre || ''}
-                      onChange={e => setSongFormData(prev => ({...prev, genre: e.target.value}))}
+                      value={songFormData.genre || ""}
+                      onChange={(e) =>
+                        setSongFormData((prev) => ({
+                          ...prev,
+                          genre: e.target.value,
+                        }))
+                      }
                       className="w-full bg-[#1a1a1a] border border-[#333] focus:border-purple-500 rounded p-2 text-sm text-gray-300 outline-none transition"
                     >
                       <option value="">-- Select Genre --</option>
-                      {(configs.lyric_genres || []).map(g => <option key={g} value={g}>{g}</option>)}
+                      {(configs.lyric_genres || []).map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
                   <div className="space-y-1">
                     <div className="flex justify-between items-center mb-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">Prompt</label>
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
+                        Prompt
+                      </label>
                       <div className="flex gap-2">
-                        <button onClick={() => handleCopy(songFormData.prompt)} className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition" title="Copy"><Copy size={12}/></button>
-                        <button onClick={async () => { try { const t = await navigator.clipboard.readText(); setSongFormData(p => ({...p, prompt: t})); } catch {} }} className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition" title="Paste"><Clipboard size={12}/></button>
+                        <button
+                          onClick={() => handleCopy(songFormData.prompt)}
+                          className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition"
+                          title="Copy"
+                        >
+                          <Copy size={12} />
+                        </button>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const t = await navigator.clipboard.readText();
+                              setSongFormData((p) => ({ ...p, prompt: t }));
+                            } catch {}
+                          }}
+                          className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition"
+                          title="Paste"
+                        >
+                          <Clipboard size={12} />
+                        </button>
                       </div>
                     </div>
                     <textarea
                       value={songFormData.prompt}
-                      onChange={e => setSongFormData(prev => ({...prev, prompt: e.target.value}))}
+                      onChange={(e) =>
+                        setSongFormData((prev) => ({
+                          ...prev,
+                          prompt: e.target.value,
+                        }))
+                      }
                       className="w-full h-24 bg-[#1a1a1a] border border-[#333] focus:border-purple-500/50 rounded p-2 text-sm text-gray-200 outline-none resize-none font-mono"
                       placeholder="Describe the song style, feel, or generation instructions..."
                     />
@@ -963,120 +2110,300 @@ const App = () => {
 
                   <div className="space-y-1">
                     <div className="flex justify-between items-center mb-1">
-                      <label className="text-xs font-bold text-purple-400 uppercase tracking-wider ml-1 flex items-center gap-1"><Mic2 size={11}/> Lyrics</label>
+                      <label className="text-xs font-bold text-purple-400 uppercase tracking-wider ml-1 flex items-center gap-1">
+                        <Mic2 size={11} /> Lyrics
+                      </label>
                       <div className="flex gap-2">
-                        <button onClick={() => handleCopy(songFormData.lyrics)} className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition" title="Copy"><Copy size={12}/></button>
-                        <button onClick={async () => { try { const t = await navigator.clipboard.readText(); setSongFormData(p => ({...p, lyrics: t})); } catch {} }} className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition" title="Paste"><Clipboard size={12}/></button>
+                        <button
+                          onClick={() => handleCopy(songFormData.lyrics)}
+                          className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition"
+                          title="Copy"
+                        >
+                          <Copy size={12} />
+                        </button>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const t = await navigator.clipboard.readText();
+                              setSongFormData((p) => ({ ...p, lyrics: t }));
+                            } catch {}
+                          }}
+                          className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition"
+                          title="Paste"
+                        >
+                          <Clipboard size={12} />
+                        </button>
                       </div>
                     </div>
                     <textarea
                       value={songFormData.lyrics}
-                      onChange={e => setSongFormData(prev => ({...prev, lyrics: e.target.value}))}
+                      onChange={(e) =>
+                        setSongFormData((prev) => ({
+                          ...prev,
+                          lyrics: e.target.value,
+                        }))
+                      }
                       className="w-full h-40 bg-[#1a1a1a] border border-[#333] focus:border-purple-500/50 rounded p-2 text-sm text-gray-200 outline-none resize-none font-mono"
-                      placeholder={"[Verse 1]\nWrite your lyrics here...\n\n[Chorus]\n..."}
+                      placeholder={
+                        "[Verse 1]\nWrite your lyrics here...\n\n[Chorus]\n..."
+                      }
                     />
                   </div>
 
                   <div className="space-y-1">
                     <div className="flex justify-between items-center mb-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 flex items-center gap-1"><Tag size={11}/> Tags</label>
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 flex items-center gap-1">
+                        <Tag size={11} /> Tags
+                      </label>
                       <div className="flex gap-2">
-                        <button onClick={() => handleCopy(songFormData.tags)} className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition" title="Copy"><Copy size={12}/></button>
-                        <button onClick={async () => { try { const t = await navigator.clipboard.readText(); setSongFormData(p => ({...p, tags: t})); } catch {} }} className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition" title="Paste"><Clipboard size={12}/></button>
+                        <button
+                          onClick={() => handleCopy(songFormData.tags)}
+                          className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition"
+                          title="Copy"
+                        >
+                          <Copy size={12} />
+                        </button>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const t = await navigator.clipboard.readText();
+                              setSongFormData((p) => ({ ...p, tags: t }));
+                            } catch {}
+                          }}
+                          className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition"
+                          title="Paste"
+                        >
+                          <Clipboard size={12} />
+                        </button>
                       </div>
                     </div>
                     <textarea
                       value={songFormData.tags}
-                      onChange={e => setSongFormData(prev => ({...prev, tags: e.target.value}))}
+                      onChange={(e) =>
+                        setSongFormData((prev) => ({
+                          ...prev,
+                          tags: e.target.value,
+                        }))
+                      }
                       className="w-full h-20 bg-[#1a1a1a] border border-[#333] focus:border-purple-500/50 rounded p-2 text-sm text-gray-300 outline-none resize-none font-mono"
-                      placeholder={"dark, cinematic, upbeat, lo-fi\ninstrumental, 808 bass, oud"}
+                      placeholder={
+                        "dark, cinematic, upbeat, lo-fi\ninstrumental, 808 bass, oud"
+                      }
                     />
                   </div>
                 </>
               )}
 
               {/* TAB 02 — GENERATION */}
-              {songEditorView === 'generation' && (
+              {songEditorView === "generation" && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
-
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Duration (sec)</label>
-                      <input type="number" step="1" min="0" value={songFormData.duration}
-                        onChange={e => setSongFormData(p => ({...p, duration: parseInt(e.target.value) || 0}))}
-                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500" />
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                        Duration (sec)
+                      </label>
+                      <input
+                        type="number"
+                        step="1"
+                        min="0"
+                        value={songFormData.duration}
+                        onChange={(e) =>
+                          setSongFormData((p) => ({
+                            ...p,
+                            duration: parseInt(e.target.value) || 0,
+                          }))
+                        }
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500"
+                      />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">BPM</label>
-                      <input type="number" step="1" min="1" value={songFormData.bpm}
-                        onChange={e => setSongFormData(p => ({...p, bpm: parseInt(e.target.value) || 0}))}
-                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500" />
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                        BPM
+                      </label>
+                      <input
+                        type="number"
+                        step="1"
+                        min="1"
+                        value={songFormData.bpm}
+                        onChange={(e) =>
+                          setSongFormData((p) => ({
+                            ...p,
+                            bpm: parseInt(e.target.value) || 0,
+                          }))
+                        }
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500"
+                      />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Time Signature</label>
-                      <input type="number" step="1" min="1" value={songFormData.timeSignature}
-                        onChange={e => setSongFormData(p => ({...p, timeSignature: parseInt(e.target.value) || 4}))}
-                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500" />
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                        Time Signature
+                      </label>
+                      <input
+                        type="number"
+                        step="1"
+                        min="1"
+                        value={songFormData.timeSignature}
+                        onChange={(e) =>
+                          setSongFormData((p) => ({
+                            ...p,
+                            timeSignature: parseInt(e.target.value) || 4,
+                          }))
+                        }
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500"
+                      />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Language</label>
-                      <select value={songFormData.language} onChange={e => setSongFormData(p => ({...p, language: e.target.value}))}
-                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                        Language
+                      </label>
+                      <select
+                        value={songFormData.language}
+                        onChange={(e) =>
+                          setSongFormData((p) => ({
+                            ...p,
+                            language: e.target.value,
+                          }))
+                        }
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500"
+                      >
                         <option value="">-- Select --</option>
-                        {(configs.lyric_languages || []).map(l => <option key={l} value={l}>{l}</option>)}
+                        {(configs.lyric_languages || []).map((l) => (
+                          <option key={l} value={l}>
+                            {l}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
                     <div className="col-span-2 space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Key / Scale</label>
-                      <select value={songFormData.keyscale} onChange={e => setSongFormData(p => ({...p, keyscale: e.target.value}))}
-                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500">
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                        Key / Scale
+                      </label>
+                      <select
+                        value={songFormData.keyscale}
+                        onChange={(e) =>
+                          setSongFormData((p) => ({
+                            ...p,
+                            keyscale: e.target.value,
+                          }))
+                        }
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500"
+                      >
                         <option value="">-- Select --</option>
-                        {(configs.lyric_keyscales || []).map(k => <option key={k} value={k}>{k}</option>)}
+                        {(configs.lyric_keyscales || []).map((k) => (
+                          <option key={k} value={k}>
+                            {k}
+                          </option>
+                        ))}
                       </select>
                     </div>
-
                   </div>
 
                   <div className="border-t border-[#2a2a2a] pt-3 space-y-3">
-                    <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest ml-1">Sampling Parameters</p>
+                    <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest ml-1">
+                      Sampling Parameters
+                    </p>
 
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">CFG Scale: {songFormData.cfgScale.toFixed(1)}</label>
-                      <input type="range" min="1" max="30" step="0.1" value={songFormData.cfgScale}
-                        onChange={e => setSongFormData(p => ({...p, cfgScale: parseFloat(e.target.value)}))}
-                        className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-purple-500" />
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                        CFG Scale: {songFormData.cfgScale.toFixed(1)}
+                      </label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="30"
+                        step="0.1"
+                        value={songFormData.cfgScale}
+                        onChange={(e) =>
+                          setSongFormData((p) => ({
+                            ...p,
+                            cfgScale: parseFloat(e.target.value),
+                          }))
+                        }
+                        className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-purple-500"
+                      />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Temperature: {songFormData.temperature.toFixed(2)}</label>
-                      <input type="range" min="0" max="2" step="0.01" value={songFormData.temperature}
-                        onChange={e => setSongFormData(p => ({...p, temperature: parseFloat(e.target.value)}))}
-                        className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-purple-500" />
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                        Temperature: {songFormData.temperature.toFixed(2)}
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="2"
+                        step="0.01"
+                        value={songFormData.temperature}
+                        onChange={(e) =>
+                          setSongFormData((p) => ({
+                            ...p,
+                            temperature: parseFloat(e.target.value),
+                          }))
+                        }
+                        className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-purple-500"
+                      />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Top P: {songFormData.topP.toFixed(2)}</label>
-                      <input type="range" min="0" max="1" step="0.01" value={songFormData.topP}
-                        onChange={e => setSongFormData(p => ({...p, topP: parseFloat(e.target.value)}))}
-                        className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-purple-500" />
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                        Top P: {songFormData.topP.toFixed(2)}
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={songFormData.topP}
+                        onChange={(e) =>
+                          setSongFormData((p) => ({
+                            ...p,
+                            topP: parseFloat(e.target.value),
+                          }))
+                        }
+                        className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-purple-500"
+                      />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-500 uppercase ml-1">Top K</label>
-                        <input type="number" step="1" min="0" value={songFormData.topK}
-                          onChange={e => setSongFormData(p => ({...p, topK: parseInt(e.target.value) || 0}))}
-                          className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500" />
+                        <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                          Top K
+                        </label>
+                        <input
+                          type="number"
+                          step="1"
+                          min="0"
+                          value={songFormData.topK}
+                          onChange={(e) =>
+                            setSongFormData((p) => ({
+                              ...p,
+                              topK: parseInt(e.target.value) || 0,
+                            }))
+                          }
+                          className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500"
+                        />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-500 uppercase ml-1">Min P</label>
-                        <input type="number" step="0.001" min="0" max="1" value={songFormData.minP}
-                          onChange={e => setSongFormData(p => ({...p, minP: parseFloat(e.target.value) || 0}))}
-                          className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500" />
+                        <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                          Min P
+                        </label>
+                        <input
+                          type="number"
+                          step="0.001"
+                          min="0"
+                          max="1"
+                          value={songFormData.minP}
+                          onChange={(e) =>
+                            setSongFormData((p) => ({
+                              ...p,
+                              minP: parseFloat(e.target.value) || 0,
+                            }))
+                          }
+                          className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500"
+                        />
                       </div>
                     </div>
                   </div>
@@ -1084,128 +2411,320 @@ const App = () => {
               )}
 
               {/* TAB 03 — MODEL */}
-              {songEditorView === 'model' && (
+              {songEditorView === "model" && (
                 <div className="space-y-3">
-
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Diffusion Model</label>
-                    <select value={songFormData.diffusionModel} onChange={e => setSongFormData(p => ({...p, diffusionModel: e.target.value}))}
-                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                      Diffusion Model
+                    </label>
+                    <select
+                      value={songFormData.diffusionModel}
+                      onChange={(e) =>
+                        setSongFormData((p) => ({
+                          ...p,
+                          diffusionModel: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500"
+                    >
                       <option value="">-- Select --</option>
-                      {(configs.lyric_diffusionmodels || []).map(m => <option key={m} value={m}>{m}</option>)}
+                      {(configs.lyric_diffusionmodels || []).map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Model Weight DType</label>
-                    <select value={songFormData.diffusionModelWeightDtype} onChange={e => setSongFormData(p => ({...p, diffusionModelWeightDtype: e.target.value}))}
-                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                      Model Weight DType
+                    </label>
+                    <select
+                      value={songFormData.diffusionModelWeightDtype}
+                      onChange={(e) =>
+                        setSongFormData((p) => ({
+                          ...p,
+                          diffusionModelWeightDtype: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500"
+                    >
                       <option value="">-- Select --</option>
-                      {(configs.lyric_diffusionmodelweightdtypes || []).map(d => <option key={d} value={d}>{d}</option>)}
+                      {(configs.lyric_diffusionmodelweightdtypes || []).map(
+                        (d) => (
+                          <option key={d} value={d}>
+                            {d}
+                          </option>
+                        ),
+                      )}
                     </select>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Clip Loader 01</label>
-                    <select value={songFormData.clipLoader01} onChange={e => setSongFormData(p => ({...p, clipLoader01: e.target.value}))}
-                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                      Clip Loader 01
+                    </label>
+                    <select
+                      value={songFormData.clipLoader01}
+                      onChange={(e) =>
+                        setSongFormData((p) => ({
+                          ...p,
+                          clipLoader01: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500"
+                    >
                       <option value="">-- Select --</option>
-                      {(configs.lyric_cliploaders || []).map(c => <option key={c} value={c}>{c}</option>)}
+                      {(configs.lyric_cliploaders || []).map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Clip Loader 02</label>
-                    <select value={songFormData.clipLoader02} onChange={e => setSongFormData(p => ({...p, clipLoader02: e.target.value}))}
-                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                      Clip Loader 02
+                    </label>
+                    <select
+                      value={songFormData.clipLoader02}
+                      onChange={(e) =>
+                        setSongFormData((p) => ({
+                          ...p,
+                          clipLoader02: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500"
+                    >
                       <option value="">-- Select --</option>
-                      {(configs.lyric_cliploaders || []).map(c => <option key={c} value={c}>{c}</option>)}
+                      {(configs.lyric_cliploaders || []).map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Clip Loader Type</label>
-                    <select value={songFormData.clipLoaderType} onChange={e => setSongFormData(p => ({...p, clipLoaderType: e.target.value}))}
-                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                      Clip Loader Type
+                    </label>
+                    <select
+                      value={songFormData.clipLoaderType}
+                      onChange={(e) =>
+                        setSongFormData((p) => ({
+                          ...p,
+                          clipLoaderType: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500"
+                    >
                       <option value="">-- Select --</option>
-                      {(configs.lyric_cliploadertypes || []).map(t => <option key={t} value={t}>{t}</option>)}
+                      {(configs.lyric_cliploadertypes || []).map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Seed</label>
-                      <input type="number" step="1" value={songFormData.seed}
-                        onChange={e => setSongFormData(p => ({...p, seed: parseInt(e.target.value)}))}
-                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500" />
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                        Seed
+                      </label>
+                      <input
+                        type="number"
+                        step="1"
+                        value={songFormData.seed}
+                        onChange={(e) =>
+                          setSongFormData((p) => ({
+                            ...p,
+                            seed: parseInt(e.target.value),
+                          }))
+                        }
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500"
+                      />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">Model Shift</label>
-                      <input type="number" step="0.01" value={songFormData.modelShift}
-                        onChange={e => setSongFormData(p => ({...p, modelShift: parseFloat(e.target.value) || 0}))}
-                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500" />
+                      <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                        Model Shift
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={songFormData.modelShift}
+                        onChange={(e) =>
+                          setSongFormData((p) => ({
+                            ...p,
+                            modelShift: parseFloat(e.target.value) || 0,
+                          }))
+                        }
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500"
+                      />
                     </div>
                   </div>
-
                 </div>
               )}
 
               {/* TAB 04 — SAMPLER */}
-              {songEditorView === 'sampler' && (
+              {songEditorView === "sampler" && (
                 <div className="space-y-3">
-
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Sampler Steps: {songFormData.samplerSteps}</label>
-                    <input type="range" min="1" max="150" step="1" value={songFormData.samplerSteps}
-                      onChange={e => setSongFormData(p => ({...p, samplerSteps: parseInt(e.target.value)}))}
-                      className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-purple-500" />
-                    <div className="flex justify-between text-[10px] text-gray-600"><span>1</span><span>75</span><span>150</span></div>
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                      Sampler Steps: {songFormData.samplerSteps}
+                    </label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="150"
+                      step="1"
+                      value={songFormData.samplerSteps}
+                      onChange={(e) =>
+                        setSongFormData((p) => ({
+                          ...p,
+                          samplerSteps: parseInt(e.target.value),
+                        }))
+                      }
+                      className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-purple-500"
+                    />
+                    <div className="flex justify-between text-[10px] text-gray-600">
+                      <span>1</span>
+                      <span>75</span>
+                      <span>150</span>
+                    </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Sampler CFG: {songFormData.samplerCfg.toFixed(1)}</label>
-                    <input type="range" min="1" max="30" step="0.1" value={songFormData.samplerCfg}
-                      onChange={e => setSongFormData(p => ({...p, samplerCfg: parseFloat(e.target.value)}))}
-                      className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-purple-500" />
-                    <div className="flex justify-between text-[10px] text-gray-600"><span>1</span><span>15</span><span>30</span></div>
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                      Sampler CFG: {songFormData.samplerCfg.toFixed(1)}
+                    </label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="30"
+                      step="0.1"
+                      value={songFormData.samplerCfg}
+                      onChange={(e) =>
+                        setSongFormData((p) => ({
+                          ...p,
+                          samplerCfg: parseFloat(e.target.value),
+                        }))
+                      }
+                      className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-purple-500"
+                    />
+                    <div className="flex justify-between text-[10px] text-gray-600">
+                      <span>1</span>
+                      <span>15</span>
+                      <span>30</span>
+                    </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Sampler Denoise: {songFormData.samplerDenoise.toFixed(2)}</label>
-                    <input type="range" min="0" max="1" step="0.01" value={songFormData.samplerDenoise}
-                      onChange={e => setSongFormData(p => ({...p, samplerDenoise: parseFloat(e.target.value)}))}
-                      className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-purple-500" />
-                    <div className="flex justify-between text-[10px] text-gray-600"><span>0.00</span><span>0.50</span><span>1.00</span></div>
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                      Sampler Denoise: {songFormData.samplerDenoise.toFixed(2)}
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={songFormData.samplerDenoise}
+                      onChange={(e) =>
+                        setSongFormData((p) => ({
+                          ...p,
+                          samplerDenoise: parseFloat(e.target.value),
+                        }))
+                      }
+                      className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-purple-500"
+                    />
+                    <div className="flex justify-between text-[10px] text-gray-600">
+                      <span>0.00</span>
+                      <span>0.50</span>
+                      <span>1.00</span>
+                    </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Sampler Name</label>
-                    <select value={songFormData.samplerName} onChange={e => setSongFormData(p => ({...p, samplerName: e.target.value}))}
-                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                      Sampler Name
+                    </label>
+                    <select
+                      value={songFormData.samplerName}
+                      onChange={(e) =>
+                        setSongFormData((p) => ({
+                          ...p,
+                          samplerName: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500"
+                    >
                       <option value="">-- Select --</option>
-                      {(configs.lyric_samplernames || []).map(s => <option key={s} value={s}>{s}</option>)}
+                      {(configs.lyric_samplernames || []).map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Sampler Scheduler</label>
-                    <select value={songFormData.samplerScheduler} onChange={e => setSongFormData(p => ({...p, samplerScheduler: e.target.value}))}
-                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                      Sampler Scheduler
+                    </label>
+                    <select
+                      value={songFormData.samplerScheduler}
+                      onChange={(e) =>
+                        setSongFormData((p) => ({
+                          ...p,
+                          samplerScheduler: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500"
+                    >
                       <option value="">-- Select --</option>
-                      {(configs.lyric_samplerschedulers || []).map(s => <option key={s} value={s}>{s}</option>)}
+                      {(configs.lyric_samplerschedulers || []).map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
                     </select>
                   </div>
+                </div>
+              )}
 
+              {songEditorView === "notes" && (
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
+                    Personal Notes
+                  </label>
+                  <textarea
+                    value={songFormData.comment}
+                    onChange={(e) => setSongFormData((p) => ({ ...p, comment: e.target.value }))}
+                    className="w-full h-40 bg-[#1a1a1a] border border-[#333] focus:border-purple-500/50 rounded p-2 text-sm text-gray-400 outline-none resize-none"
+                    placeholder="Add your thoughts, tags, or context here..."
+                  />
                 </div>
               )}
             </div>
 
             <div className="p-4 bg-[#1a1a1a]/95 backdrop-blur border-t border-[#333] flex gap-3">
-              <button onClick={handleSongBackOrCancel} className={`flex-1 py-2 rounded-lg font-bold transition flex items-center justify-center gap-2 ${!songFormData.id ? 'bg-red-900/20 text-red-400 hover:bg-red-900/40' : 'bg-[#333] hover:bg-[#444] text-gray-200'}`}>
-                {!songFormData.id ? <Ban size={18} /> : <ArrowLeft size={18} />} {!songFormData.id ? 'Cancel' : 'Back'}
+              <button
+                onClick={handleSongBackOrCancel}
+                className={`flex-1 py-2 rounded-lg font-bold transition flex items-center justify-center gap-2 ${!songFormData.id ? "bg-red-900/20 text-red-400 hover:bg-red-900/40" : "bg-[#333] hover:bg-[#444] text-gray-200"}`}
+              >
+                {!songFormData.id ? <Ban size={18} /> : <ArrowLeft size={18} />}{" "}
+                {!songFormData.id ? "Cancel" : "Back"}
               </button>
-              <button onClick={() => handleSaveSong(false)} disabled={isSaving} className={`flex-1 ${isSaving ? 'bg-green-600' : 'bg-purple-600 hover:bg-purple-500'} text-white py-2 rounded-lg font-bold shadow-lg shadow-purple-900/20 transition-all flex items-center justify-center gap-2`}>
-                {isSaving ? <Check size={18} /> : <Save size={18} />} {isSaving ? 'Saved!' : 'Save Song'}
+              <button
+                onClick={() => handleSaveSong(false)}
+                disabled={isSaving}
+                className={`flex-1 ${isSaving ? "bg-green-600" : "bg-purple-600 hover:bg-purple-500"} text-white py-2 rounded-lg font-bold shadow-lg shadow-purple-900/20 transition-all flex items-center justify-center gap-2`}
+              >
+                {isSaving ? <Check size={18} /> : <Save size={18} />}{" "}
+                {isSaving ? "Saved!" : "Save Song"}
               </button>
             </div>
           </div>
@@ -1220,6 +2739,6 @@ const App = () => {
       `}</style>
     </div>
   );
-}
+};
 
 export default App;
