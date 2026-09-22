@@ -132,5 +132,8 @@ if (!window.electron) {
     listDriveFiles: async () => [],
     loadDriveFile: async () => ({}),
     saveDriveFile: async () => ({ success: true }),
+    getApiInfo: async () => ({ running: false }),
+    startApi: async (port) => ({ running: true, url: `http://127.0.0.1:${port || 5174}`, token: 'mock-token', port: port || 5174 }),
+    stopApi: async () => ({ running: false }),
   };
 }

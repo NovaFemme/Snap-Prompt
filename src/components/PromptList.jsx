@@ -2,6 +2,7 @@ import React from "react";
 import { Plus, Calendar, Trash2, Music, MessageSquare } from "lucide-react";
 import SourcePicker from "./SourcePicker";
 import ConfigEditor from "./ConfigEditor";
+import ApiPanel from "./ApiPanel";
 
 const PromptList = ({
   user,
@@ -226,6 +227,7 @@ const PromptList = ({
         driveKeyMap={driveKeyMap}
         onConfigSaved={onConfigSaved}
       />
+      <ApiPanel />
     </div>
   );
 };

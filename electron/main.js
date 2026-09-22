@@ -5,6 +5,7 @@ const http = require('http');
 const url = require('url');
 const querystring = require('querystring');
 const dotenv = require('dotenv');
+const { startApiServer, stopApiServer } = require('./api-server');
 
 // --- 1. CONFIGURATION & PATH FIXES ---
 
@@ -41,6 +42,7 @@ let authTokens = null;
 let userProfile = null;
 let driveFolderId = null;
 let mainWindow;
+let api = null;
 
 
 function parseItems(data) {
@@ -146,8 +148,21 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  loadTokens(); 
+  loadTokens();
   createWindow();
+  const savedPort = parseInt(process.env.SNAP_API_PORT) || 5174;
+  const savedToken = process.env.SNAP_API_TOKEN || null;
+  if (savedToken) {
+    try {
+      api = startApiServer({ userDataPath: USER_DATA_PATH, port: savedPort, token: savedToken });
+    } catch (err) {
+      console.error('[api] startup error:', err.message);
+    }
+  }
+});
+
+app.on('will-quit', () => {
+  if (api) { api.close(); api = null; }
 });
 
 app.on('window-all-closed', () => {
@@ -677,4 +692,24 @@ ipcMain.handle('save-prompt', async (event, promptData) => {
   } catch (err) {
     return { success: false, error: err.message };
   }
+});
+
+// --- LOCAL API ---
+ipcMain.handle('get-api-info', () =>
+  api ? { running: true, url: `http://127.0.0.1:${api.port}`, token: api.token, port: api.port } : { running: false }
+);
+
+ipcMain.handle('start-api', (e, port) => {
+  if (api) return { running: true, url: `http://127.0.0.1:${api.port}`, token: api.token, port: api.port };
+  try {
+    api = startApiServer({ userDataPath: USER_DATA_PATH, port: port || 5174 });
+    return { running: true, url: `http://127.0.0.1:${api.port}`, token: api.token, port: api.port };
+  } catch (err) {
+    return { running: false, error: err.message };
+  }
+});
+
+ipcMain.handle('stop-api', () => {
+  if (api) { stopApiServer(); api = null; }
+  return { running: false };
 });

@@ -23,6 +23,11 @@ contextBridge.exposeInMainWorld('electron', {
   loadDriveFile: (fileId) => ipcRenderer.invoke('load-drive-file', fileId),
   saveDriveFile: (payload) => ipcRenderer.invoke('save-drive-file', payload),
 
+  // Local API
+  getApiInfo: () => ipcRenderer.invoke('get-api-info'),
+  startApi: (port) => ipcRenderer.invoke('start-api', port),
+  stopApi: () => ipcRenderer.invoke('stop-api'),
+
   // Window Controls
   resizeWindow: (isMin) => ipcRenderer.send('resize-window', isMin),
   restoreWindow: () => ipcRenderer.send('restore-window'),
