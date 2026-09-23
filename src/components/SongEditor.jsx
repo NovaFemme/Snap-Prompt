@@ -740,21 +740,36 @@ const SongEditor = ({
         )}
 
         {songEditorView === "notes" && (
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
-              Personal Notes
-            </label>
-            <textarea
-              value={songFormData.comment}
-              onChange={(e) =>
-                setSongFormData((p) => ({
-                  ...p,
-                  comment: e.target.value,
-                }))
-              }
-              className="w-full h-40 bg-[#1a1a1a] border border-[#333] focus:border-purple-500/50 rounded p-2 text-sm text-gray-400 outline-none resize-none"
-              placeholder="Add your thoughts, tags, or context here..."
-            />
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
+                Personal Notes
+              </label>
+              <textarea
+                value={songFormData.comment}
+                onChange={(e) =>
+                  setSongFormData((p) => ({
+                    ...p,
+                    comment: e.target.value,
+                  }))
+                }
+                className="w-full h-40 bg-[#1a1a1a] border border-[#333] focus:border-purple-500/50 rounded p-2 text-sm text-gray-400 outline-none resize-none"
+                placeholder="Add your thoughts, tags, or context here..."
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
+                Prompt Date
+              </label>
+              <input
+                type="date"
+                value={songFormData.promptDate || new Date().toISOString().split("T")[0]}
+                onChange={(e) =>
+                  setSongFormData((p) => ({ ...p, promptDate: e.target.value }))
+                }
+                className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-purple-500 [color-scheme:dark]"
+              />
+            </div>
           </div>
         )}
       </div>
