@@ -54,6 +54,7 @@ if (!window.electron) {
       return {
         basemodels: ["SDXL_1.0", "SD 1.5"],
         samplers: ["DPM++ 2M Karras", "Euler a"],
+        schedulers: ["Simple", "SGM Uniform", "Karras", "Exponential", "DDIM Uniform", "Beta", "Normal"],
         categories: ["Character", "Landscape"],
         modeltypes: ["Checkpoint", "LoRA"],
         checkpointtypes: ["Merged", "Trained"],

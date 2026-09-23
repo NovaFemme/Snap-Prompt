@@ -221,6 +221,72 @@ const PromptEditor = ({
                 placeholder="What to avoid?"
               />
             </div>
+
+            <div className="space-y-1">
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 text-yellow-600">
+                  Style Prompt
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleCopy(formData.stylePrompt)}
+                    className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition"
+                    title="Copy"
+                  >
+                    <Copy size={12} />
+                  </button>
+                  <button
+                    onClick={() => handlePaste("stylePrompt")}
+                    className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition"
+                    title="Paste"
+                  >
+                    <Clipboard size={12} />
+                  </button>
+                </div>
+              </div>
+              <textarea
+                value={formData.stylePrompt}
+                onChange={(e) =>
+                  setFormData({ ...formData, stylePrompt: e.target.value })
+                }
+                disabled={isSaving}
+                className="w-full h-20 bg-[#1a1a1a] border border-[#333] focus:border-yellow-600/50 rounded p-2 text-sm text-gray-200 outline-none resize-none font-mono disabled:opacity-50"
+                placeholder="SDXL style prompt..."
+              />
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 text-orange-500">
+                  Refiner Prompt
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleCopy(formData.refinerPrompt)}
+                    className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition"
+                    title="Copy"
+                  >
+                    <Copy size={12} />
+                  </button>
+                  <button
+                    onClick={() => handlePaste("refinerPrompt")}
+                    className="p-1 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 transition"
+                    title="Paste"
+                  >
+                    <Clipboard size={12} />
+                  </button>
+                </div>
+              </div>
+              <textarea
+                value={formData.refinerPrompt}
+                onChange={(e) =>
+                  setFormData({ ...formData, refinerPrompt: e.target.value })
+                }
+                disabled={isSaving}
+                className="w-full h-20 bg-[#1a1a1a] border border-[#333] focus:border-orange-500/50 rounded p-2 text-sm text-gray-200 outline-none resize-none font-mono disabled:opacity-50"
+                placeholder="Refiner pass prompt..."
+              />
+            </div>
           </>
         )}
 
@@ -264,6 +330,24 @@ const PromptEditor = ({
                   className="w-full h-1 bg-[#333] rounded-lg appearance-none cursor-pointer accent-blue-500"
                 />
               </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                Seed
+              </label>
+              <input
+                type="number"
+                step="1"
+                value={formData.seed}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    seed: parseInt(e.target.value),
+                  })
+                }
+                className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-blue-500"
+                placeholder="-1 for random"
+              />
             </div>
             <div className="space-y-1">
               <label className="text-xs font-bold text-gray-500 uppercase ml-1">
@@ -381,6 +465,38 @@ const PromptEditor = ({
             </div>
             <div className="space-y-1">
               <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                Scheduler
+              </label>
+              <select
+                value={formData.scheduler}
+                onChange={(e) =>
+                  setFormData({ ...formData, scheduler: e.target.value })
+                }
+                className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none"
+              >
+                {configs.schedulers?.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                Prompt Type
+              </label>
+              <input
+                type="text"
+                value={formData.usedPromptType}
+                onChange={(e) =>
+                  setFormData({ ...formData, usedPromptType: e.target.value })
+                }
+                className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-blue-500"
+                placeholder="e.g. SDXL, SD 1.5, Flux"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-500 uppercase ml-1">
                 Resolution
               </label>
               <select
@@ -477,6 +593,21 @@ const PromptEditor = ({
                   <option value="img2vid">Image to Video</option>
                   <option value="inpainting">Inpainting</option>
                 </select>
+              </div>
+
+              <div className="col-span-2 space-y-1">
+                <label className="text-xs font-bold text-gray-500 uppercase ml-1">
+                  Sub Category
+                </label>
+                <input
+                  type="text"
+                  value={formData.subCategory || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, subCategory: e.target.value })
+                  }
+                  className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-sm text-gray-300 outline-none focus:border-blue-500"
+                  placeholder="e.g. Fantasy, Sci-Fi, Portrait..."
+                />
               </div>
 
               <div className="col-span-2 space-y-1">
